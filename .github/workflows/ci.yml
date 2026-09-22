@@ -26,12 +26,26 @@ jobs:
         uses: actions/checkout@v7
 
       # `.xcode-version` に固定したXcodeを選択する。
+      # Runnerに該当バージョンが無い場合（例: ローカルが先行して新しい場合）は、
+      # 最新のインストール済みXcodeにフォールバックする。
       - name: Select Xcode version
         run: |
           VERSION="$(cat .xcode-version)"
           echo "Required Xcode version: $VERSION"
           ls -d /Applications/Xcode*.app
-          sudo xcode-select -s "/Applications/Xcode_${VERSION}.app/Contents/Developer"
+          PINNED="/Applications/Xcode_${VERSION}.app"
+          if [[ -d "$PINNED" ]]; then
+            echo "Using pinned Xcode: $PINNED"
+            sudo xcode-select -s "$PINNED/Contents/Developer"
+          else
+            echo "::warning::Xcode ${VERSION} is not installed; falling back to the newest available Xcode."
+            LATEST="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n1 || true)"
+            if [[ -z "$LATEST" ]]; then
+              LATEST="/Applications/Xcode.app"
+            fi
+            echo "Using fallback Xcode: $LATEST"
+            sudo xcode-select -s "$LATEST/Contents/Developer"
+          fi
 
       - name: Show Xcode version
         run: xcodebuild -version
