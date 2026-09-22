@@ -136,7 +136,7 @@ Bundle build:               1
 
 - **トリガー**: `main` へのPR作成・更新、および `main` へのpush（`TreeVoiceAssistant/**` などのパスフィルタあり）
 - **処理内容**:
-  - `.xcode-version` 指定のXcodeを選択（`xcode-select`）
+  - `.xcode-version` 指定のXcodeを選択（`xcode-select`。Runnerに該当版が無い場合は最新のインストール済みXcodeにフォールバック）
   - macOS Debugビルドの検証（`xcodebuild -project TreeVoiceAssistant/TreeVoiceAssistant.xcodeproj -scheme TreeVoiceAssistant -configuration Debug build`）
   - テストの実行（`xcodebuild ... -configuration Debug test`、Swift Testing）
 
@@ -146,7 +146,7 @@ Bundle build:               1
 - **処理内容**:
   - 最新リリースタグ＋bump指定から次バージョンを算出し、`Info.plist` に書き込む（`main` への push は行わない）
   - タグ存在チェック（同名タグが既に存在する場合は多重リリース防止のためエラー終了）
-  - `.xcode-version` 指定のXcodeを選択
+  - `.xcode-version` 指定のXcodeを選択（該当版が無い場合は最新のインストール済みXcodeにフォールバック）
   - ビルドとテストの実行（`xcodebuild test`）
   - macOS Releaseビルド
   - アドホック再署名と検証（`codesign`）
