@@ -64,4 +64,9 @@ struct AppPaths: Sendable {
     var ttsToolsURL: URL {
         toolsURL.appendingPathComponent("tts", isDirectory: true)
     }
+
+    /// Irodori実行環境の配置先。`<基準>/tools/tts-irodori`（pyproject＋.venv＋複製）。
+    var ttsIrodoriURL: URL {
+        toolsURL.appendingPathComponent("tts-irodori", isDirectory: true)
+    }
 }
