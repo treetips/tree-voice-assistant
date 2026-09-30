@@ -1679,6 +1679,42 @@
           }
         }
       }
+    },
+    "v.label.caption": {
+      "comment": "",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice style"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "声の指定"
+          }
+        }
+      }
+    },
+    "v.captionPlaceholder": {
+      "comment": "",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. Calm female voice, polite and gentle."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例: 落ち着いた低めの女性の声。丁寧で穏やかな話し方。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

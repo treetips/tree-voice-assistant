@@ -246,6 +246,14 @@ private struct TtsSection: View {
                         HelpPopover(text: text("v.help.ttsModel"))
                     }
                 }
+                if viewModel.isIrodoriSelected {
+                    GridRow {
+                        Text(text("v.label.caption")).appFont(.headline)
+                        TextField(text("v.captionPlaceholder"), text: $viewModel.captionText)
+                            .appFont(.body)
+                            .disabled(jobStore.isSynthesizing)
+                    }
+                }
                 GridRow {
                     TextEditor(text: $viewModel.speechText)
                         .appFont(.body)
