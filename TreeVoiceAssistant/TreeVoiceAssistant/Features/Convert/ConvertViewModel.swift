@@ -28,6 +28,9 @@ final class ConvertViewModel {
     var ttsModel: String = TTSModel.default.rawValue {
         didSet { save() }
     }
+    var captionText: String = "" {
+        didSet { save() }
+    }
     var speechText: String = "" {
         didSet { save() }
     }
@@ -66,11 +69,24 @@ final class ConvertViewModel {
         audioFileURL != nil && !jobStore.isRunning
     }
 
+    /// Irodori-TTSを選択中か否か。
+    var isIrodoriSelected: Bool {
+        TTSModel(rawValue: ttsModel)?.isIrodori ?? false
+    }
+
     /// 音声合成実行の可否。参照音声・出力フォルダが正常で、文章があり、実行中でなければ可能。
+    /// Irodori選択時は事前文字起こしとcaptionも必須。
     var canRunSynthesis: Bool {
-        audioFileURL != nil && !outputFolderPath.isEmpty && !outputFolderHasError
-            && !speechText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !jobStore.isRunning
+        guard audioFileURL != nil, !outputFolderPath.isEmpty, !outputFolderHasError,
+            !speechText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            !jobStore.isRunning
+        else { return false }
+        if isIrodoriSelected {
+            guard !transcriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                !captionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return false }
+        }
+        return true
     }
 
     /// 再生の可否。合成済みファイルがあり、実行中でなければ可能。
@@ -152,15 +168,25 @@ final class ConvertViewModel {
         synthesisTask?.cancel()
         jobStore.isSynthesizing = true
         jobStore.resultMessage = msg("v.stagePrepare")
-        let modelID = TTSModel(rawValue: ttsModel)?.mlxAudioModelID ?? TTSModel.default.mlxAudioModelID
+        let selected = TTSModel(rawValue: ttsModel) ?? TTSModel.default
+        let modelID: String
+        let caption: String?
+        if selected.isIrodori {
+            modelID = selected.irodoriHFCheckpoint ?? "Aratako/Irodori-TTS-v4.1-Small"
+            caption = captionText
+        } else {
+            modelID = selected.mlxAudioModelID
+            caption = nil
+        }
         let request = TTSRequest(
             model: modelID,
             refAudioURL: refAudio,
             refText: transcriptionText,
             text: speechText,
-            outputDirectory: URL(fileURLWithPath: outputFolderPath, isDirectory: true)
+            outputDirectory: URL(fileURLWithPath: outputFolderPath, isDirectory: true),
+            caption: caption
         )
-        let engine = synthesizerEngine
+        let engine: any SpeechSynthesizer = selected.isIrodori ? IrodoriTTSService() : synthesizerEngine
         let cancelledMessage = msg("v.cancelled")
         synthesisTask = Task.detached {
             do {
@@ -261,6 +287,7 @@ final class ConvertViewModel {
         transcriptionText = saved.transcriptionText
         outputFolderPath = saved.outputFolderPath ?? ""
         ttsModel = saved.ttsModel
+        captionText = saved.captionText
         speechText = saved.speechText
         validateOutputFolder()
     }
@@ -272,6 +299,7 @@ final class ConvertViewModel {
         updated.convert.transcriptionText = transcriptionText
         updated.convert.outputFolderPath = outputFolderPath.isEmpty ? nil : outputFolderPath
         updated.convert.ttsModel = ttsModel
+        updated.convert.captionText = captionText
         updated.convert.speechText = speechText
         try? store.save(updated)
     }

@@ -159,6 +159,47 @@ struct ConvertValidationTests {
         #expect(jobStore.lastRunSucceeded == nil)
     }
 
+    @Test("Irodori選択時はcaptionと文字起こしが必須")
+    @MainActor
+    func irodoriRequiresCaptionAndTranscription() throws {
+        let jobStore = ConvertJobStore()
+        let viewModel = ConvertViewModel(
+            jobStore: jobStore, store: try makeStore(),
+            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
+        viewModel.acceptAudioURLs([try makeAudio()])
+        viewModel.outputFolderPath = NSTemporaryDirectory()
+        viewModel.ttsModel = TTSModel.irodoriV41Small.rawValue
+        viewModel.speechText = "よむ"
+        #expect(viewModel.canRunSynthesis == false)
+        viewModel.transcriptionText = "起こし済み"
+        #expect(viewModel.canRunSynthesis == false)
+        viewModel.captionText = "落ち着いた声"
+        #expect(viewModel.canRunSynthesis == true)
+    }
+
+    @Test("Qwen選択時はcaptionなしで実行できる")
+    @MainActor
+    func qwenRunsWithoutCaption() throws {
+        let jobStore = ConvertJobStore()
+        let viewModel = ConvertViewModel(
+            jobStore: jobStore, store: try makeStore(),
+            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
+        viewModel.acceptAudioURLs([try makeAudio()])
+        viewModel.outputFolderPath = NSTemporaryDirectory()
+        viewModel.ttsModel = TTSModel.qwen17B.rawValue
+        viewModel.speechText = "よむ"
+        #expect(viewModel.canRunSynthesis == true)
+    }
+
+    @Test("captionなしの旧設定が読める")
+    func oldSettingsDecode() throws {
+        let json = """
+            {"settings":{"showOsNotification":false,"playSound":false,"successSound":"","errorSound":"","language":"","appearance":"auto","fontSize":"standard","wallpaper":"none","wallpaperOpacity":1.0,"wallpaperBackgroundColor":"#1E1E1E"},"convert":{"whisperModel":"x","transcriptionText":"","ttsModel":"y","speechText":""}}
+            """
+        let decoded = try JSONDecoder().decode(AppSettingsFile.self, from: Data(json.utf8))
+        #expect(decoded.convert.captionText == "")
+    }
+
     @Test("合成実行は取り消せる")
     @MainActor
     func synthesisCancel() async throws {
