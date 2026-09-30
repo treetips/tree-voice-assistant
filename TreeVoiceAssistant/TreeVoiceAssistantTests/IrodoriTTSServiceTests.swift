@@ -29,6 +29,17 @@ struct IrodoriTTSServiceTests {
         )
     }
 
+    @Test("pyprojectは正しい節にgitソースを書く")
+    func pyprojectSources() {
+        let content = IrodoriTTSService.pyprojectContent()
+        #expect(!content.contains("[dependency-sources]"))
+        guard let range = content.range(of: "[tool.uv.sources]") else {
+            Issue.record("missing [tool.uv.sources]")
+            return
+        }
+        #expect(content[range.upperBound...].contains("irodori-tts = { git = "))
+    }
+
     @Test("git cloneの失敗はそのまま伝える")
     func gitFailurePassthrough() async throws {
         let (service, paths) = try makeService { executable, _, _ in

@@ -19,10 +19,8 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
             "irodori-tts",
         ]
 
-        [dependency-sources]
-        irodori-tts = { git = "\(repoURL)", rev = "\(repoBranch)" }
-
         [tool.uv.sources]
+        irodori-tts = { git = "\(repoURL)", rev = "\(repoBranch)" }
         torch = { index = "pt-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }
         torchaudio = { index = "pt-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }
 
