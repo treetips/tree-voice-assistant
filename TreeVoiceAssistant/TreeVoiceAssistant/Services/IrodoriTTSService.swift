@@ -23,11 +23,11 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
         irodori-tts = { git = "\(repoURL)", rev = "\(repoBranch)" }
 
         [tool.uv.sources]
-        torch = { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }
-        torchaudio = { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }
+        torch = { index = "pt-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }
+        torchaudio = { index = "pt-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }
 
         [[tool.uv.index]]
-        name = "pytorch-cpu"
+        name = "pt-cpu"
         url = "https://download.pytorch.org/whl/cpu"
         explicit = true
 
@@ -103,11 +103,9 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
             "--ref-wav", request.refAudioURL.path,
             "--output-wav",
             outputDirectory.appendingPathComponent("result.wav", isDirectory: false).path,
-            "--model-device", "auto",
+            "--model-device", "auto"
         ]
-        if let caption = request.caption?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !caption.isEmpty
-        {
+        if let caption = request.caption?.trimmingCharacters(in: .whitespacesAndNewlines), !caption.isEmpty {
             args += ["--caption", caption]
         }
         return args

@@ -169,15 +169,7 @@ final class ConvertViewModel {
         jobStore.isSynthesizing = true
         jobStore.resultMessage = msg("v.stagePrepare")
         let selected = TTSModel(rawValue: ttsModel) ?? TTSModel.default
-        let modelID: String
-        let caption: String?
-        if selected.isIrodori {
-            modelID = selected.irodoriHFCheckpoint ?? "Aratako/Irodori-TTS-v4.1-Small"
-            caption = captionText
-        } else {
-            modelID = selected.mlxAudioModelID
-            caption = nil
-        }
+        let (modelID, caption) = resolveTTSModel(selected: selected, captionText: captionText)
         let request = TTSRequest(
             model: modelID,
             refAudioURL: refAudio,
@@ -303,4 +295,12 @@ final class ConvertViewModel {
         updated.convert.speechText = speechText
         try? store.save(updated)
     }
+}
+
+/// 選択中モデルに対応する合成用モデルIDとcaptionを解決する。Qwenはcaptionなし。
+private func resolveTTSModel(selected: TTSModel, captionText: String) -> (modelID: String, caption: String?) {
+    if selected.isIrodori {
+        return (selected.irodoriHFCheckpoint ?? "Aratako/Irodori-TTS-v4.1-Small", captionText)
+    }
+    return (selected.mlxAudioModelID, nil)
 }

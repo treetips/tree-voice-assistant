@@ -194,7 +194,10 @@ struct ConvertValidationTests {
     @Test("captionなしの旧設定が読める")
     func oldSettingsDecode() throws {
         let json = """
-            {"settings":{"showOsNotification":false,"playSound":false,"successSound":"","errorSound":"","language":"","appearance":"auto","fontSize":"standard","wallpaper":"none","wallpaperOpacity":1.0,"wallpaperBackgroundColor":"#1E1E1E"},"convert":{"whisperModel":"x","transcriptionText":"","ttsModel":"y","speechText":""}}
+            {"settings":{"showOsNotification":false,"playSound":false,"successSound":"","errorSound":"",\
+            "language":"","appearance":"auto","fontSize":"standard","wallpaper":"none",\
+            "wallpaperOpacity":1.0,"wallpaperBackgroundColor":"#1E1E1E"},\
+            "convert":{"whisperModel":"x","transcriptionText":"","ttsModel":"y","speechText":""}}
             """
         let decoded = try JSONDecoder().decode(AppSettingsFile.self, from: Data(json.utf8))
         #expect(decoded.convert.captionText == "")

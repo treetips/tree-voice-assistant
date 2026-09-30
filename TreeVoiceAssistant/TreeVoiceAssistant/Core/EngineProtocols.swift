@@ -13,7 +13,7 @@ struct TTSRequest: Sendable, Equatable {
     var text: String
     var outputDirectory: URL
     /// Irodori-TTSのcaption。Qwen側は無視する。
-    var caption: String? = nil
+    var caption: String? = nil // swiftlint:disable:this implicit_optional_initialization
 }
 
 /// 音声合成エンジンの抽象。テストでは仮実装に差し替える。
