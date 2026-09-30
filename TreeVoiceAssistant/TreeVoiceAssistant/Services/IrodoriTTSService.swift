@@ -42,6 +42,7 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
     private let paths: AppPaths
     private let installer: UVInstaller
     private let command: RunCommand
+    private let logStore: RunLogStore
 
     init(paths: AppPaths = AppPaths(), installer: UVInstaller? = nil, command: RunCommand? = nil) {
         self.paths = paths
@@ -51,13 +52,34 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
         }
         self.command = run
         self.installer = installer ?? UVInstaller(paths: paths, command: run)
+        self.logStore = RunLogStore(paths: paths)
     }
 
     /// 合成して出力ファイルに保存する。手動実行用。
+    /// 失敗時は全文をログファイルに残し、短い理由とパスを投げる。
     func synthesize(request: TTSRequest) async throws -> URL {
+        var lines: [String] = [
+            "参照音声: \(request.refAudioURL.path)",
+            "文章: \(request.text)",
+            "caption: \(request.caption ?? "-")"
+        ]
+        do {
+            return try await run(request: request, lines: &lines)
+        } catch {
+            if Task.isCancelled || error is CancellationError {
+                throw CancellationError()
+            }
+            lines.append("失敗: \(error)")
+            let logPath = (try? logStore.write(engine: "IrodoriTTS", model: request.model, lines: lines))?.path
+                ?? "-"
+            throw AppError.synthesisFailed(reason: RunLogStore.shortReason(for: error), logPath: logPath)
+        }
+    }
+
+    private func run(request: TTSRequest, lines: inout [String]) async throws -> URL {
         try Task.checkCancellation()
         let uvPath = try await installer.uvExecutable()
-        let sourceDirectory = try await ensureEnvironment(uvPath: uvPath)
+        let sourceDirectory = try await ensureEnvironment(uvPath: uvPath, lines: &lines)
         try Task.checkCancellation()
         let fileManager = FileManager.default
         let productDir = fileManager.temporaryDirectory
@@ -70,7 +92,7 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
             sourceDirectory: sourceDirectory,
             outputDirectory: productDir)
         do {
-            _ = try await command(uvPath, args, nil)
+            _ = try await runLogged(command, uvPath, args, nil, lines: &lines)
         } catch {
             if Task.isCancelled || error is CancellationError {
                 throw CancellationError()
@@ -110,17 +132,17 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
     }
 
     /// 実行環境（複製＋.venv）を用意し、`infer.py` の配置先を返す。
-    private func ensureEnvironment(uvPath: String) async throws -> URL {
+    private func ensureEnvironment(uvPath: String, lines: inout [String]) async throws -> URL {
         let toolsDir = paths.ttsIrodoriURL
         try FileManager.default.createDirectory(at: toolsDir, withIntermediateDirectories: true)
         let checkoutDir = toolsDir.appendingPathComponent("Irodori-TTS", isDirectory: true)
         let inferPy = checkoutDir.appendingPathComponent("infer.py", isDirectory: false)
         if !FileManager.default.fileExists(atPath: inferPy.path) {
             do {
-                _ = try await command(
-                    "/usr/bin/git",
+                _ = try await runLogged(
+                    command, "/usr/bin/git",
                     ["clone", "--depth", "1", "--branch", Self.repoBranch, Self.repoURL, checkoutDir.path],
-                    nil)
+                    nil, lines: &lines)
             } catch {
                 if Task.isCancelled || error is CancellationError {
                     throw CancellationError()
@@ -137,7 +159,7 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
             try expected.write(to: pyproject, atomically: true, encoding: .utf8)
         }
         do {
-            _ = try await command(uvPath, ["sync", "--extra", "cpu"], toolsDir.path)
+            _ = try await runLogged(command, uvPath, ["sync", "--extra", "cpu"], toolsDir.path, lines: &lines)
         } catch {
             if Task.isCancelled || error is CancellationError {
                 throw CancellationError()

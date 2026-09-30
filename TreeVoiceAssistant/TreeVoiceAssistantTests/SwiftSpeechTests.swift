@@ -104,6 +104,28 @@ struct SwiftSpeechTests {
         #expect(FileManager.default.fileExists(atPath: url.path))
     }
 
+    @Test("失敗時はログを残す")
+    @MainActor
+    func failureWritesLog() async throws {
+        let stub: RunCommand = { _, args, _ in
+            if args == ["sync"] {
+                return ProcessResult(exitCode: 0, stdout: "", stderr: "")
+            }
+            throw AppError.processFailed(executable: "uv", exitCode: 1, output: "boom")
+        }
+        let (service, paths) = try makeService(stub: stub)
+        do {
+            try await service.synthesize(request: makeRequest(outputDirectory: try makeTempDir()))
+            Issue.record("投げられるべき")
+        } catch let AppError.synthesisFailed(reason, logPath) {
+            #expect(reason.contains("終了コード 1"))
+            #expect(logPath.hasPrefix(paths.logsURL.path))
+            #expect(FileManager.default.fileExists(atPath: logPath))
+            let body = try String(contentsOfFile: logPath, encoding: .utf8)
+            #expect(body.contains("boom"))
+        }
+    }
+
     @Test("生成物が無ければ失敗する")
     @MainActor
     func synthesisWithoutProductFails() async throws {

@@ -40,32 +40,41 @@ struct IrodoriTTSServiceTests {
         #expect(content[range.upperBound...].contains("irodori-tts = { git = "))
     }
 
-    @Test("git cloneの失敗はそのまま伝える")
-    func gitFailurePassthrough() async throws {
-        let (service, paths) = try makeService { executable, _, _ in
+    @Test("git cloneの失敗はログ付きで伝える")
+    func gitFailureLogged() async throws {
+        let (service, _) = try makeService { executable, _, _ in
             if executable == "/usr/bin/git" {
                 throw AppError.processFailed(executable: executable, exitCode: 128, output: "net down")
             }
             return ProcessResult(exitCode: 0, stdout: "", stderr: "")
         }
-        await #expect(
-            throws: AppError.processFailed(
-                executable: "/usr/bin/git", exitCode: 128, output: "net down")
-        ) {
-            try await service.synthesize(request: makeRequest(outputDirectory: paths.toolsURL))
+        do {
+            let request = makeRequest(outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory()))
+            try await service.synthesize(request: request)
+            Issue.record("投げられるべき")
+        } catch let AppError.synthesisFailed(reason, logPath) {
+            #expect(reason.contains("128"))
+            #expect(FileManager.default.fileExists(atPath: logPath))
+            let body = try String(contentsOfFile: logPath, encoding: .utf8)
+            #expect(body.contains("net down"))
         }
     }
 
-    @Test("git不在はgitMissingになる")
-    func gitMissingMaps() async throws {
-        let (service, paths) = try makeService { executable, _, _ in
+    @Test("git不在はgitMissingの理由でログ付きになる")
+    func gitMissingLogged() async throws {
+        let (service, _) = try makeService { executable, _, _ in
             if executable == "/usr/bin/git" {
                 throw AppError.toolMissing(executable)
             }
             return ProcessResult(exitCode: 0, stdout: "", stderr: "")
         }
-        await #expect(throws: AppError.gitMissing) {
-            try await service.synthesize(request: makeRequest(outputDirectory: paths.toolsURL))
+        do {
+            let request = makeRequest(outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory()))
+            try await service.synthesize(request: request)
+            Issue.record("投げられるべき")
+        } catch let AppError.synthesisFailed(reason, logPath) {
+            #expect(reason.contains("git"))
+            #expect(FileManager.default.fileExists(atPath: logPath))
         }
     }
 

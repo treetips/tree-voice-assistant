@@ -33,6 +33,7 @@ final class MLXAudioTTSService: SpeechSynthesizer, @unchecked Sendable {
     private let paths: AppPaths
     private let installer: UVInstaller
     private let command: RunCommand
+    private let logStore: RunLogStore
 
     init(paths: AppPaths = AppPaths(), installer: UVInstaller? = nil, command: RunCommand? = nil) {
         self.paths = paths
@@ -42,13 +43,33 @@ final class MLXAudioTTSService: SpeechSynthesizer, @unchecked Sendable {
         }
         self.command = run
         self.installer = installer ?? UVInstaller(paths: paths, command: run)
+        self.logStore = RunLogStore(paths: paths)
     }
 
     /// 合成して出力ファイルに保存する。手動実行用。
+    /// 失敗時は全文をログファイルに残し、短い理由とパスを投げる。
     func synthesize(request: TTSRequest) async throws -> URL {
+        var lines: [String] = [
+            "参照音声: \(request.refAudioURL.path)",
+            "文章: \(request.text)"
+        ]
+        do {
+            return try await run(request: request, lines: &lines)
+        } catch {
+            if Task.isCancelled || error is CancellationError {
+                throw CancellationError()
+            }
+            lines.append("失敗: \(error)")
+            let logPath = (try? logStore.write(engine: "MLXAudioTTS", model: request.model, lines: lines))?.path
+                ?? "-"
+            throw AppError.synthesisFailed(reason: RunLogStore.shortReason(for: error), logPath: logPath)
+        }
+    }
+
+    private func run(request: TTSRequest, lines: inout [String]) async throws -> URL {
         try Task.checkCancellation()
         let uvPath = try await installer.uvExecutable()
-        try await ensureEnvironment(uvPath: uvPath)
+        try await ensureEnvironment(uvPath: uvPath, lines: &lines)
         try Task.checkCancellation()
         let fileManager = FileManager.default
         let productDir = fileManager.temporaryDirectory
@@ -58,7 +79,7 @@ final class MLXAudioTTSService: SpeechSynthesizer, @unchecked Sendable {
         let args = Self.generateArguments(
             request: request, projectDirectory: paths.ttsToolsURL, outputDirectory: productDir)
         do {
-            _ = try await command(uvPath, args, nil)
+            _ = try await runLogged(command, uvPath, args, nil, lines: &lines)
         } catch {
             if Task.isCancelled || error is CancellationError {
                 throw CancellationError()
@@ -97,7 +118,7 @@ final class MLXAudioTTSService: SpeechSynthesizer, @unchecked Sendable {
     }
 
     /// 実行環境（.venv）を用意する。初回は同期に時間がかかる。
-    private func ensureEnvironment(uvPath: String) async throws {
+    private func ensureEnvironment(uvPath: String, lines: inout [String]) async throws {
         let ttsDir = paths.ttsToolsURL
         try FileManager.default.createDirectory(at: ttsDir, withIntermediateDirectories: true)
         let pyproject = ttsDir.appendingPathComponent("pyproject.toml", isDirectory: false)
@@ -106,7 +127,7 @@ final class MLXAudioTTSService: SpeechSynthesizer, @unchecked Sendable {
             try expected.write(to: pyproject, atomically: true, encoding: .utf8)
         }
         do {
-            _ = try await command(uvPath, ["sync"], ttsDir.path)
+            _ = try await runLogged(command, uvPath, ["sync"], ttsDir.path, lines: &lines)
         } catch {
             if Task.isCancelled || error is CancellationError {
                 throw CancellationError()
