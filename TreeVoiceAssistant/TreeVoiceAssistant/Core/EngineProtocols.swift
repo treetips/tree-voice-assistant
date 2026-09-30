@@ -12,6 +12,8 @@ struct TTSRequest: Sendable, Equatable {
     var refText: String
     var text: String
     var outputDirectory: URL
+    /// Irodori-TTSのcaption。Qwen側は無視する。
+    var caption: String? = nil
 }
 
 /// 音声合成エンジンの抽象。テストでは仮実装に差し替える。

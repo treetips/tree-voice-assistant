@@ -47,6 +47,8 @@ enum WhisperModel: String, Hashable, Identifiable, CaseIterable {
 enum TTSModel: String, Hashable, Identifiable, CaseIterable {
     case qwen17B = "Qwen3-TTS-12Hz-1.7B"
     case qwen06B = "Qwen3-TTS-12Hz-0.6B"
+    case irodoriV41Small = "Irodori-TTS-v4.1-Small"
+    case irodoriV41SmallMF = "Irodori-TTS-v4.1-Small-MF"
 
     var id: String { rawValue }
 
@@ -57,6 +59,24 @@ enum TTSModel: String, Hashable, Identifiable, CaseIterable {
         switch self {
         case .qwen17B: return "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-6bit"
         case .qwen06B: return "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16"
+        case .irodoriV41Small, .irodoriV41SmallMF: return ""
+        }
+    }
+
+    /// Irodori-TTSか否か。
+    var isIrodori: Bool {
+        switch self {
+        case .irodoriV41Small, .irodoriV41SmallMF: return true
+        case .qwen17B, .qwen06B: return false
+        }
+    }
+
+    /// Irodori-TTSに渡すHugging Faceチェックポイント。Qwenの場合はnil。
+    var irodoriHFCheckpoint: String? {
+        switch self {
+        case .irodoriV41Small: return "Aratako/Irodori-TTS-v4.1-Small"
+        case .irodoriV41SmallMF: return "Aratako/Irodori-TTS-v4.1-Small-MF"
+        case .qwen17B, .qwen06B: return nil
         }
     }
 }

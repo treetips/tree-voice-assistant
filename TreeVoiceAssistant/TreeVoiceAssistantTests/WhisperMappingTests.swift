@@ -28,5 +28,10 @@ struct WhisperMappingTests {
         #expect(TTSModel.qwen17B.mlxAudioModelID == "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-6bit")
         #expect(TTSModel.qwen06B.mlxAudioModelID == "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16")
         #expect(TTSModel.default == .qwen17B)
+        #expect(TTSModel.irodoriV41Small.irodoriHFCheckpoint == "Aratako/Irodori-TTS-v4.1-Small")
+        #expect(TTSModel.irodoriV41SmallMF.irodoriHFCheckpoint == "Aratako/Irodori-TTS-v4.1-Small-MF")
+        #expect(TTSModel.qwen17B.irodoriHFCheckpoint == nil)
+        #expect(TTSModel.irodoriV41Small.isIrodori == true)
+        #expect(TTSModel.qwen17B.isIrodori == false)
     }
 }
