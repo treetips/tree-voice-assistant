@@ -26,6 +26,20 @@ struct FakeSynthesizer: SpeechSynthesizer {
     }
 }
 
+/// テスト用の要求記録つき合成。無音wavを置く。
+final class CapturingSynthesizer: SpeechSynthesizer, @unchecked Sendable {
+    var captured: TTSRequest?
+    func synthesize(request: TTSRequest) async throws -> URL {
+        captured = request
+        try FileManager.default.createDirectory(
+            at: request.outputDirectory, withIntermediateDirectories: true)
+        let url = request.outputDirectory
+            .appendingPathComponent(MLXAudioTTSService.timestampFileName(), isDirectory: false)
+        try silentWavData().write(to: url, options: .atomic)
+        return url
+    }
+}
+
 /// テスト用の終わらない合成。取り消されると `CancellationError` で終わる。
 struct HangingSynthesizer: SpeechSynthesizer {
     func synthesize(request: TTSRequest) async throws -> URL {
@@ -201,6 +215,46 @@ struct ConvertValidationTests {
             """
         let decoded = try JSONDecoder().decode(AppSettingsFile.self, from: Data(json.utf8))
         #expect(decoded.convert.captionText == "")
+    }
+
+    @Test("Irodori経路はcaption付き要求を送る")
+    @MainActor
+    func irodoriSendsCaption() async throws {
+        let captor = CapturingSynthesizer()
+        let jobStore = ConvertJobStore()
+        let viewModel = ConvertViewModel(
+            jobStore: jobStore, store: try makeStore(),
+            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer(),
+            irodori: captor)
+        viewModel.acceptAudioURLs([try makeAudio()])
+        viewModel.outputFolderPath = NSTemporaryDirectory()
+        viewModel.ttsModel = TTSModel.irodoriV41SmallMF.rawValue
+        viewModel.transcriptionText = "起こし済み"
+        viewModel.captionText = "落ち着いた声"
+        viewModel.speechText = "よむ"
+        viewModel.runSynthesis()
+        while jobStore.isSynthesizing {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(jobStore.lastRunSucceeded == true)
+        #expect(captor.captured?.caption == "落ち着いた声")
+        #expect(captor.captured?.model == "Aratako/Irodori-TTS-v4.1-Small-MF")
+    }
+
+    @Test("Irodori選択とcaptionが保存・復元される")
+    @MainActor
+    func irodoriSelectionPersists() throws {
+        let store = try makeStore()
+        let first = ConvertViewModel(
+            jobStore: ConvertJobStore(), store: store,
+            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
+        first.ttsModel = TTSModel.irodoriV41SmallMF.rawValue
+        first.captionText = "落ち着いた声"
+        let second = ConvertViewModel(
+            jobStore: ConvertJobStore(), store: store,
+            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
+        #expect(second.ttsModel == TTSModel.irodoriV41SmallMF.rawValue)
+        #expect(second.captionText == "落ち着いた声")
     }
 
     @Test("合成実行は取り消せる")

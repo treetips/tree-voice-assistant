@@ -127,7 +127,10 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
                 if Task.isCancelled || error is CancellationError {
                     throw CancellationError()
                 }
-                throw AppError.gitMissing
+                if let appError = error as? AppError, appError == .toolMissing("/usr/bin/git") {
+                    throw AppError.gitMissing
+                }
+                throw error
             }
         }
         let pyproject = toolsDir.appendingPathComponent("pyproject.toml", isDirectory: false)

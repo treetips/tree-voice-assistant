@@ -39,6 +39,7 @@ final class ConvertViewModel {
     private let jobStore: ConvertJobStore
     private let transcriptionEngine: any TranscriptionEngine
     private let synthesizerEngine: any SpeechSynthesizer
+    private let irodoriSynthesizer: any SpeechSynthesizer
     private let notifier: CompletionNotifier
     private var audioPlayer: AVAudioPlayer?
     private var transcriptionTask: Task<Void, Never>?
@@ -51,7 +52,8 @@ final class ConvertViewModel {
         jobStore: ConvertJobStore,
         store: SettingsStore? = nil,
         transcription: (any TranscriptionEngine)? = nil,
-        synthesizer: (any SpeechSynthesizer)? = nil
+        synthesizer: (any SpeechSynthesizer)? = nil,
+        irodori: (any SpeechSynthesizer)? = nil
     ) {
         self.jobStore = jobStore
         let paths = AppPaths()
@@ -60,6 +62,7 @@ final class ConvertViewModel {
         // 実行のたびに作り直すとモデルの解決・読み込みを繰り返すため共有する。
         self.transcriptionEngine = transcription ?? WhisperKitEngine()
         self.synthesizerEngine = synthesizer ?? MLXAudioTTSService()
+        self.irodoriSynthesizer = irodori ?? IrodoriTTSService()
         self.notifier = CompletionNotifier(store: settingsStore)
         load()
     }
@@ -67,11 +70,6 @@ final class ConvertViewModel {
     /// 文字起こし実行の可否。入力音声があり、実行中でなければ可能。
     var canRunTranscription: Bool {
         audioFileURL != nil && !jobStore.isRunning
-    }
-
-    /// Irodori-TTSを選択中か否か。
-    var isIrodoriSelected: Bool {
-        TTSModel(rawValue: ttsModel)?.isIrodori ?? false
     }
 
     /// 音声合成実行の可否。参照音声・出力フォルダが正常で、文章があり、実行中でなければ可能。
@@ -178,7 +176,7 @@ final class ConvertViewModel {
             outputDirectory: URL(fileURLWithPath: outputFolderPath, isDirectory: true),
             caption: caption
         )
-        let engine: any SpeechSynthesizer = selected.isIrodori ? IrodoriTTSService() : synthesizerEngine
+        let engine: any SpeechSynthesizer = selected.isIrodori ? irodoriSynthesizer : synthesizerEngine
         let cancelledMessage = msg("v.cancelled")
         synthesisTask = Task.detached {
             do {
@@ -303,4 +301,11 @@ private func resolveTTSModel(selected: TTSModel, captionText: String) -> (modelI
         return (selected.irodoriHFCheckpoint ?? "Aratako/Irodori-TTS-v4.1-Small", captionText)
     }
     return (selected.mlxAudioModelID, nil)
+}
+
+extension ConvertViewModel {
+    /// Irodori-TTSを選択中か否か。
+    var isIrodoriSelected: Bool {
+        TTSModel(rawValue: ttsModel)?.isIrodori ?? false
+    }
 }

@@ -5,6 +5,59 @@ import Testing
 
 @Suite("IrodoriTTSService")
 struct IrodoriTTSServiceTests {
+    func makeService(stub: @escaping RunCommand) throws -> (IrodoriTTSService, AppPaths) {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let paths = AppPaths(baseURL: dir)
+        let uvPath = paths.bundledUvURL
+        try FileManager.default.createDirectory(
+            at: uvPath.deletingLastPathComponent(), withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: uvPath.path, contents: Data("x".utf8))
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: uvPath.path)
+        return (IrodoriTTSService(paths: paths, command: stub), paths)
+    }
+
+    func makeRequest(outputDirectory: URL) -> TTSRequest {
+        TTSRequest(
+            model: "Aratako/Irodori-TTS-v4.1-Small",
+            refAudioURL: URL(fileURLWithPath: "/tmp/ref.wav"),
+            refText: "",
+            text: "よむ",
+            outputDirectory: outputDirectory,
+            caption: "落ち着いた声"
+        )
+    }
+
+    @Test("git cloneの失敗はそのまま伝える")
+    func gitFailurePassthrough() async throws {
+        let (service, paths) = try makeService { executable, _, _ in
+            if executable == "/usr/bin/git" {
+                throw AppError.processFailed(executable: executable, exitCode: 128, output: "net down")
+            }
+            return ProcessResult(exitCode: 0, stdout: "", stderr: "")
+        }
+        await #expect(
+            throws: AppError.processFailed(
+                executable: "/usr/bin/git", exitCode: 128, output: "net down")
+        ) {
+            try await service.synthesize(request: makeRequest(outputDirectory: paths.toolsURL))
+        }
+    }
+
+    @Test("git不在はgitMissingになる")
+    func gitMissingMaps() async throws {
+        let (service, paths) = try makeService { executable, _, _ in
+            if executable == "/usr/bin/git" {
+                throw AppError.toolMissing(executable)
+            }
+            return ProcessResult(exitCode: 0, stdout: "", stderr: "")
+        }
+        await #expect(throws: AppError.gitMissing) {
+            try await service.synthesize(request: makeRequest(outputDirectory: paths.toolsURL))
+        }
+    }
+
     @Test("infer.pyの引数を組み立てる")
     func arguments() throws {
         let ref = URL(fileURLWithPath: "/tmp/ref.wav", isDirectory: false)
