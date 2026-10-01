@@ -33,5 +33,21 @@ struct WhisperMappingTests {
         #expect(TTSModel.qwen17B.irodoriHFCheckpoint == nil)
         #expect(TTSModel.irodoriV41Small.isIrodori == true)
         #expect(TTSModel.qwen17B.isIrodori == false)
+        #expect(TTSModel.irodoriV4Large.irodoriHFCheckpoint == "Aratako/Irodori-TTS-v4-Large")
+        #expect(
+            TTSModel.irodoriV4LargeQuantized.irodoriHFCheckpoint
+                == "Aratako/Irodori-TTS-v4-Large-Quantized/int8-weight-only"
+        )
+        #expect(
+            TTSModel.irodoriV41SmallQuantized.irodoriHFCheckpoint
+                == "Aratako/Irodori-TTS-v4.1-Small-Quantized/int8-weight-only"
+        )
+        #expect(TTSModel.allCases.filter(\.isIrodori).map(\.rawValue) == [
+            "Irodori-TTS-v4-Large",
+            "Irodori-TTS-v4-Large-Quantized",
+            "Irodori-TTS-v4.1-Small-MF",
+            "Irodori-TTS-v4.1-Small",
+            "Irodori-TTS-v4.1-Small-Quantized"
+        ])
     }
 }

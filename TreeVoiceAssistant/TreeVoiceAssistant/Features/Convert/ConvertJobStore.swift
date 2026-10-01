@@ -8,6 +8,9 @@ final class ConvertJobStore {
     var isTranscribing = false
     var isSynthesizing = false
     var isPlaying = false
+    /// 実行段階。ボタンの状態表示に使う。
+    var transcriptionStage: EngineStage = .idle
+    var synthesisStage: EngineStage = .idle
     /// 直近の実行結果に応じたドロップエリアの枠色に使う。成功=true、失敗=false。
     var lastRunSucceeded: Bool?
     var outputFileURL: URL?

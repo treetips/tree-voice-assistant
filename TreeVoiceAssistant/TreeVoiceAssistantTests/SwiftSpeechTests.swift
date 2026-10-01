@@ -126,6 +126,39 @@ struct SwiftSpeechTests {
         }
     }
 
+    @Test("実行開始時に残存を掃除する")
+    func sweepsLeftovers() async throws {
+        let stub: RunCommand = { _, args, _ in
+            if args == ["sync"] {
+                return ProcessResult(exitCode: 0, stdout: "", stderr: "")
+            }
+            throw AppError.processFailed(executable: "uv", exitCode: 1, output: "gen down")
+        }
+        let (service, _) = try makeService(stub: stub)
+        let markerDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("tva-sweep-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: markerDir, withIntermediateDirectories: true)
+        let link = markerDir.appendingPathComponent("tree-voice-tts-sleep", isDirectory: false)
+        try FileManager.default.createSymbolicLink(
+            at: link, withDestinationURL: URL(fileURLWithPath: "/bin/sleep"))
+        let leftover = Process()
+        leftover.executableURL = link
+        leftover.arguments = ["60"]
+        try leftover.run()
+        #expect(leftover.isRunning)
+        do {
+            try await service.synthesize(request: makeRequest(outputDirectory: try makeTempDir()))
+            Issue.record("投げられるべき")
+        } catch is AppError {
+        }
+        var waits = 0
+        while leftover.isRunning, waits < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            waits += 1
+        }
+        #expect(leftover.isRunning == false)
+    }
+
     @Test("生成物が無ければ失敗する")
     @MainActor
     func synthesisWithoutProductFails() async throws {

@@ -55,6 +55,16 @@ struct AppPaths: Sendable {
         projectDirectoryURL.appendingPathComponent("tools", isDirectory: true)
     }
 
+    /// `<基準>/models`。取得済みモデル（Whisper・HF形式）の配置先。
+    var modelsURL: URL {
+        projectDirectoryURL.appendingPathComponent("models", isDirectory: true)
+    }
+
+    /// Python系のHFキャッシュ。`HF_HUB_CACHE` に渡す。
+    var hfHubURL: URL {
+        modelsURL.appendingPathComponent("hf-hub", isDirectory: true)
+    }
+
     /// 内蔵 `uv` の配置先。`<基準>/tools/bin/uv`。
     var bundledUvURL: URL {
         toolsURL.appendingPathComponent("bin/uv", isDirectory: false)

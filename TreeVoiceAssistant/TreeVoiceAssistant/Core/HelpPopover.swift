@@ -3,6 +3,8 @@ import SwiftUI
 /// ⓘアイコン。ホバー／フォーカスで説明ポップオーバーを表示する。
 struct HelpPopover: View {
     var text: String
+    var icon: String = "info.circle"
+    var tint: Color = .secondary
 
     @State private var isPresented = false
     @State private var isHovering = false
@@ -14,9 +16,9 @@ struct HelpPopover: View {
             isPinned.toggle()
             updatePresented()
         } label: {
-            Image(systemName: "info.circle")
+            Image(systemName: icon)
                 .appFont(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(tint)
                 .frame(width: 24, height: 24)
         }
         .buttonStyle(.plain)

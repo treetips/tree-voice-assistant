@@ -29,6 +29,12 @@ struct IrodoriTTSServiceTests {
         )
     }
 
+    @Test("pyprojectはPython3.11系に固定する")
+    func pyprojectPythonPin() {
+        let content = IrodoriTTSService.pyprojectContent()
+        #expect(content.contains("requires-python = \">=3.10,<3.12\""))
+    }
+
     @Test("pyprojectは正しい節にgitソースを書く")
     func pyprojectSources() {
         let content = IrodoriTTSService.pyprojectContent()
@@ -76,6 +82,80 @@ struct IrodoriTTSServiceTests {
             #expect(reason.contains("git"))
             #expect(FileManager.default.fileExists(atPath: logPath))
         }
+    }
+
+    @Test("実行開始時に残存を掃除する")
+    func sweepsLeftovers() async throws {
+        let (service, paths) = try makeService { executable, args, _ in
+            if executable == "/usr/bin/git" {
+                return ProcessResult(exitCode: 0, stdout: "", stderr: "")
+            }
+            if args.first == "sync" {
+                return ProcessResult(exitCode: 0, stdout: "", stderr: "")
+            }
+            throw AppError.processFailed(executable: executable, exitCode: 1, output: "infer down")
+        }
+        let markerDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("tva-sweep-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: markerDir, withIntermediateDirectories: true)
+        let link = markerDir.appendingPathComponent("tree-voice-irodori-sleep", isDirectory: false)
+        try FileManager.default.createSymbolicLink(
+            at: link, withDestinationURL: URL(fileURLWithPath: "/bin/sleep"))
+        let leftover = Process()
+        leftover.executableURL = link
+        leftover.arguments = ["60"]
+        try leftover.run()
+        #expect(leftover.isRunning)
+        do {
+            let request = makeRequest(outputDirectory: paths.toolsURL)
+            try await service.synthesize(request: request)
+            Issue.record("投げられるべき")
+        } catch is AppError {
+        }
+        var waits = 0
+        while leftover.isRunning, waits < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            waits += 1
+        }
+        #expect(leftover.isRunning == false)
+    }
+
+    @Test("デバイスはinfer.pyの既定に任せる")
+    func noDeviceFlag() throws {
+        let ref = URL(fileURLWithPath: "/tmp/ref.wav", isDirectory: false)
+        let out = URL(fileURLWithPath: "/tmp/out", isDirectory: true)
+        let proj = URL(fileURLWithPath: "/tmp/tts-irodori", isDirectory: true)
+        let src = URL(fileURLWithPath: "/tmp/tts-irodori/src", isDirectory: true)
+        let request = TTSRequest(
+            model: "Aratako/Irodori-TTS-v4.1-Small",
+            refAudioURL: ref,
+            refText: "",
+            text: "よむ",
+            outputDirectory: out,
+            caption: "c"
+        )
+        let args = IrodoriTTSService.generateArguments(
+            request: request, projectDirectory: proj, sourceDirectory: src, outputDirectory: out)
+        #expect(!args.contains("--model-device"))
+    }
+
+    @Test("精度はinfer.pyの既定に任せる")
+    func noPrecisionFlag() throws {
+        let ref = URL(fileURLWithPath: "/tmp/ref.wav", isDirectory: false)
+        let out = URL(fileURLWithPath: "/tmp/out", isDirectory: true)
+        let proj = URL(fileURLWithPath: "/tmp/tts-irodori", isDirectory: true)
+        let src = URL(fileURLWithPath: "/tmp/tts-irodori/src", isDirectory: true)
+        let request = TTSRequest(
+            model: "Aratako/Irodori-TTS-v4.1-Small-Quantized/int8-weight-only",
+            refAudioURL: ref,
+            refText: "",
+            text: "よむ",
+            outputDirectory: out,
+            caption: "c"
+        )
+        let args = IrodoriTTSService.generateArguments(
+            request: request, projectDirectory: proj, sourceDirectory: src, outputDirectory: out)
+        #expect(!args.contains("--model-precision"))
     }
 
     @Test("infer.pyの引数を組み立てる")

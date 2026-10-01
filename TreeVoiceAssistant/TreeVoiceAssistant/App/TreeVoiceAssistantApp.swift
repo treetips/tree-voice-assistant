@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// アプリのエントリポイント。
@@ -10,6 +11,15 @@ struct TreeVoiceAssistantApp: App {
 
     init() {
         settings.requestNotificationAuthorization()
+        let logsURL = AppPaths().logsURL
+        RunLogStore.rotate(directory: logsURL)
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            RunLogStore.rotate(directory: logsURL)
+        }
     }
 
     var body: some Scene {
@@ -24,7 +34,7 @@ struct TreeVoiceAssistantApp: App {
         .commands {
             CommandGroup(after: .appInfo) {
                 Button(L10n.string("menu.checkForUpdates", language: settings.language)) {
-                    updateCheck.checkForUpdate()
+                    updateCheck.checkForUpdate(language: settings.language)
                 }
                 .disabled(updateCheck.isChecking)
                 Button(L10n.string("menu.settings", language: settings.language)) {

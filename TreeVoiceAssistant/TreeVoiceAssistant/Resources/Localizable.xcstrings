@@ -1237,13 +1237,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "If a file with the same name exists, it will be overwritten."
+            "value": "If a file with the same name exists, it will be overwritten. Unwritable locations are marked red and cannot run."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "出力先に既に同一のファイル名が存在する場合、上書きコピーされます。"
+            "value": "出力先に既に同一のファイル名が存在する場合、上書きコピーされます。書き込めない場所は赤枠になり実行できません。"
           }
         }
       }
@@ -1712,6 +1712,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "例: 落ち着いた低めの女性の声。丁寧で穏やかな話し方。"
+          }
+        }
+      }
+    },
+    "v.warn.modelDownload": {
+      "comment": "",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model will be downloaded on first run, which may take a while."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初回実行時にモデルを取得するため時間がかかります"
+          }
+        }
+      }
+    },
+    "v.stage.downloading": {
+      "comment": "",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading model…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルのダウンロード中…"
           }
         }
       }

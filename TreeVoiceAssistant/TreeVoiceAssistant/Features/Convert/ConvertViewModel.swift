@@ -7,41 +7,56 @@ import Foundation
 @MainActor
 final class ConvertViewModel {
     var audioFileURL: URL? {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var audioFileName: String = "" {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var whisperModel: String = WhisperModel.default.rawValue {
-        didSet { save() }
+        didSet {
+            refreshModelCache()
+            scheduleSave()
+        }
     }
     var transcriptionText: String = "" {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var outputFolderPath: String = "" {
         didSet {
             validateOutputFolder()
-            save()
+            scheduleSave()
         }
     }
     var outputFolderHasError = false
     var ttsModel: String = TTSModel.default.rawValue {
-        didSet { save() }
+        didSet {
+            refreshModelCache()
+            scheduleSave()
+        }
     }
     var captionText: String = "" {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var speechText: String = "" {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
 
-    private let store: SettingsStore
-    private let jobStore: ConvertJobStore
+    /// モデル取得済みか。未取得なら注意表示の対象。
+    var whisperCached = true
+    /// モデル取得済みか。未取得なら注意表示の対象。
+    var ttsCached = true
+
+    let store: SettingsStore
+    let jobStore: ConvertJobStore
     private let transcriptionEngine: any TranscriptionEngine
     private let synthesizerEngine: any SpeechSynthesizer
     private let irodoriSynthesizer: any SpeechSynthesizer
-    private let notifier: CompletionNotifier
-    private var audioPlayer: AVAudioPlayer?
+    let cacheChecker: ModelCacheChecker
+    let notifier: CompletionNotifier
+    private let saver = SaveCoalescer()
+    /// 文言解決用の言語。ファイル読み直しを避けるため保持する。
+    var cachedLanguage = ""
+    var audioPlayer: AVAudioPlayer?
     private var transcriptionTask: Task<Void, Never>?
     private var synthesisTask: Task<Void, Never>?
     /// 実行世代。取り消し・再実行で古い完了処理を無効化する。
@@ -53,7 +68,8 @@ final class ConvertViewModel {
         store: SettingsStore? = nil,
         transcription: (any TranscriptionEngine)? = nil,
         synthesizer: (any SpeechSynthesizer)? = nil,
-        irodori: (any SpeechSynthesizer)? = nil
+        irodori: (any SpeechSynthesizer)? = nil,
+        cacheChecker: ModelCacheChecker? = nil
     ) {
         self.jobStore = jobStore
         let paths = AppPaths()
@@ -63,8 +79,21 @@ final class ConvertViewModel {
         self.transcriptionEngine = transcription ?? WhisperKitEngine()
         self.synthesizerEngine = synthesizer ?? MLXAudioTTSService()
         self.irodoriSynthesizer = irodori ?? IrodoriTTSService()
+        self.cacheChecker = cacheChecker ?? ModelCacheChecker()
         self.notifier = CompletionNotifier(store: settingsStore)
         load()
+        refreshLanguage()
+        refreshModelCache()
+    }
+
+    /// 保存予約。連続した変更を1回の書き込みにまとめる。
+    private func scheduleSave() {
+        saver.schedule { self.save() }
+    }
+
+    /// 予約中の保存を即時実行する。
+    func flushSaves() {
+        saver.flush { self.save() }
     }
 
     /// 文字起こし実行の可否。入力音声があり、実行中でなければ可能。
@@ -73,16 +102,14 @@ final class ConvertViewModel {
     }
 
     /// 音声合成実行の可否。参照音声・出力フォルダが正常で、文章があり、実行中でなければ可能。
-    /// Irodori選択時は事前文字起こしとcaptionも必須。
+    /// Irodori選択時は事前文字起こしも必須。captionは任意。
     var canRunSynthesis: Bool {
         guard audioFileURL != nil, !outputFolderPath.isEmpty, !outputFolderHasError,
             !speechText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !jobStore.isRunning
         else { return false }
         if isIrodoriSelected {
-            guard !transcriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                !captionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            else { return false }
+            guard !transcriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         }
         return true
     }
@@ -106,18 +133,29 @@ final class ConvertViewModel {
     /// タスクがViewModelを保持するため、画面を切り替えても状態は最後まで解決する。
     func runTranscription() {
         guard canRunTranscription, let source = audioFileURL else { return }
+        flushSaves()
+        refreshLanguage()
+        cacheChecker.migrateIfNeeded()
         transcriptionGen += 1
         let gen = transcriptionGen
         transcriptionTask?.cancel()
         jobStore.isTranscribing = true
         jobStore.resultMessage = ""
+        jobStore.transcriptionStage = whisperCached ? .running : .preparingModel
         let modelID = WhisperModel(rawValue: whisperModel)?.argmaxModelID
             ?? WhisperModel.default.argmaxModelID
         let engine = transcriptionEngine
+        let store = jobStore
         let cancelledMessage = msg("v.cancelled")
         transcriptionTask = Task.detached {
             do {
-                let text = try await engine.transcribe(audioURL: source, modelID: modelID)
+                let text = try await engine.transcribe(audioURL: source, modelID: modelID) { stage in
+                    Task {
+                        await MainActor.run {
+                            if gen == self.transcriptionGen { store.transcriptionStage = stage }
+                        }
+                    }
+                }
                 await MainActor.run {
                     self.finishTranscription(gen: gen, text: text, errorMessage: nil)
                 }
@@ -136,6 +174,7 @@ final class ConvertViewModel {
         transcriptionTask?.cancel()
         transcriptionTask = nil
         jobStore.isTranscribing = false
+        jobStore.transcriptionStage = .idle
         jobStore.lastRunSucceeded = nil
         jobStore.resultMessage = msg("v.cancelled")
     }
@@ -152,6 +191,8 @@ final class ConvertViewModel {
         }
         jobStore.isTranscribing = false
         transcriptionTask = nil
+        jobStore.transcriptionStage = .idle
+        refreshModelCache()
         Task { await notifyFinished() }
     }
 
@@ -161,26 +202,37 @@ final class ConvertViewModel {
     func runSynthesis() {
         stopPlayback()
         guard canRunSynthesis, let refAudio = audioFileURL else { return }
+        flushSaves()
+        refreshLanguage()
+        cacheChecker.migrateIfNeeded()
         synthesisGen += 1
         let gen = synthesisGen
         synthesisTask?.cancel()
         jobStore.isSynthesizing = true
-        jobStore.resultMessage = msg("v.stagePrepare")
+        jobStore.resultMessage = ""
+        jobStore.synthesisStage = ttsCached ? .running : .preparingModel
         let selected = TTSModel(rawValue: ttsModel) ?? TTSModel.default
-        let (modelID, caption) = resolveTTSModel(selected: selected, captionText: captionText)
+        let resolved = resolveTTSModel(selected: selected, captionText: captionText)
         let request = TTSRequest(
-            model: modelID,
+            model: resolved.modelID,
             refAudioURL: refAudio,
             refText: transcriptionText,
             text: speechText,
             outputDirectory: URL(fileURLWithPath: outputFolderPath, isDirectory: true),
-            caption: caption
+            caption: resolved.caption
         )
         let engine: any SpeechSynthesizer = selected.isIrodori ? irodoriSynthesizer : synthesizerEngine
+        let store = jobStore
         let cancelledMessage = msg("v.cancelled")
         synthesisTask = Task.detached {
             do {
-                let url = try await engine.synthesize(request: request)
+                let url = try await engine.synthesize(request: request) { stage in
+                    Task {
+                        await MainActor.run {
+                            if gen == self.synthesisGen { store.synthesisStage = stage }
+                        }
+                    }
+                }
                 await MainActor.run {
                     self.finishSynthesis(gen: gen, outputURL: url, errorMessage: nil)
                 }
@@ -200,6 +252,7 @@ final class ConvertViewModel {
         synthesisTask = nil
         stopPlayback()
         jobStore.isSynthesizing = false
+        jobStore.synthesisStage = .idle
         jobStore.lastRunSucceeded = nil
         jobStore.resultMessage = msg("v.cancelled")
     }
@@ -216,9 +269,14 @@ final class ConvertViewModel {
         }
         jobStore.isSynthesizing = false
         synthesisTask = nil
+        jobStore.synthesisStage = .idle
+        refreshModelCache()
         Task { await notifyFinished() }
     }
 
+}
+
+extension ConvertViewModel {
     /// 再生中の音声を止める。
     private func stopPlayback() {
         audioPlayer?.stop()
@@ -241,25 +299,9 @@ final class ConvertViewModel {
             jobStore.resultMessage = error.localizedDescription
         }
     }
+}
 
-    private func notifyFinished() async {
-        if let player = await notifier.finish(
-            allSuccess: jobStore.lastRunSucceeded ?? false,
-            language: currentLanguage()
-        ) {
-            audioPlayer = player
-            player.play()
-        }
-    }
-
-    private func currentLanguage() -> String {
-        (try? store.load(maxParallel: ProcessInfo.processInfo.processorCount).settings.language) ?? ""
-    }
-
-    private func msg(_ key: String) -> String {
-        L10n.string(key, language: currentLanguage())
-    }
-
+extension ConvertViewModel {
     private func validateOutputFolder() {
         if outputFolderPath.isEmpty {
             outputFolderHasError = false
@@ -267,7 +309,19 @@ final class ConvertViewModel {
         }
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: outputFolderPath, isDirectory: &isDir)
-        outputFolderHasError = !(exists && isDir.boolValue)
+        guard exists && isDir.boolValue else {
+            outputFolderHasError = true
+            return
+        }
+        let probe = URL(fileURLWithPath: outputFolderPath, isDirectory: true)
+            .appendingPathComponent(".tree-voice-write-test", isDirectory: false)
+        do {
+            try Data("ok".utf8).write(to: probe, options: .atomic)
+            try? FileManager.default.removeItem(at: probe)
+            outputFolderHasError = false
+        } catch {
+            outputFolderHasError = true
+        }
     }
 
     private func load() {
@@ -292,20 +346,5 @@ final class ConvertViewModel {
         updated.convert.captionText = captionText
         updated.convert.speechText = speechText
         try? store.save(updated)
-    }
-}
-
-/// 選択中モデルに対応する合成用モデルIDとcaptionを解決する。Qwenはcaptionなし。
-private func resolveTTSModel(selected: TTSModel, captionText: String) -> (modelID: String, caption: String?) {
-    if selected.isIrodori {
-        return (selected.irodoriHFCheckpoint ?? "Aratako/Irodori-TTS-v4.1-Small", captionText)
-    }
-    return (selected.mlxAudioModelID, nil)
-}
-
-extension ConvertViewModel {
-    /// Irodori-TTSを選択中か否か。
-    var isIrodoriSelected: Bool {
-        TTSModel(rawValue: ttsModel)?.isIrodori ?? false
     }
 }

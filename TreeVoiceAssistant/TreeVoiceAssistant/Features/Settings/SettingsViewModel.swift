@@ -7,37 +7,47 @@ import Foundation
 @MainActor
 final class SettingsViewModel {
     var showOsNotification: Bool = false {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var playSound: Bool = false {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var successSound: String = "" {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var errorSound: String = "" {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var successSounds: [SoundOption] = []
     var errorSounds: [SoundOption] = []
     var language: String = "" {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var appearance: String = AppearanceMode.auto.rawValue {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var fontSize: String = FontSizeOption.standard.rawValue {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var wallpaper: String = WallpaperSelection.noneName {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var wallpapers: [WallpaperOption] = []
     var wallpaperOpacity: Double = 1.0 {
-        didSet { save() }
+        didSet { scheduleSave() }
     }
     var wallpaperBackgroundColorHex: String = "#1E1E1E" {
-        didSet { save() }
+        didSet { scheduleSave() }
+    }
+
+    /// 保存予約。連続した変更を1回の書き込みにまとめる。
+    private func scheduleSave() {
+        saver.schedule { self.save() }
+    }
+
+    /// 予約中の保存を即時実行する。
+    func flushSaves() {
+        saver.flush { self.save() }
     }
 
     /// 外観モード別の背景色初期値。ライト=#FFFFFF、ダーク=#1E1E1E、自動=システムに従う。
@@ -106,6 +116,7 @@ final class SettingsViewModel {
     private let wallpaperService: WallpaperService
     private let notificationService: NotificationService
     private var audioPlayer: AVAudioPlayer?
+    private let saver = SaveCoalescer()
 
     init(
         store: SettingsStore? = nil,

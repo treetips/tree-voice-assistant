@@ -8,7 +8,9 @@ struct FakeTranscriptionEngine: TranscriptionEngine {
     var text: String = "仮の文字起こし"
     var error: (any Error & Sendable)?
 
-    func transcribe(audioURL: URL, modelID: String) async throws -> String {
+    func transcribe(
+        audioURL: URL, modelID: String, onStage: @escaping @Sendable (EngineStage) -> Void
+    ) async throws -> String {
         if let error { throw error }
         return text
     }
@@ -16,7 +18,9 @@ struct FakeTranscriptionEngine: TranscriptionEngine {
 
 /// テスト用の仮合成。無音wavを置く。
 struct FakeSynthesizer: SpeechSynthesizer {
-    func synthesize(request: TTSRequest) async throws -> URL {
+    func synthesize(
+        request: TTSRequest, onStage: @escaping @Sendable (EngineStage) -> Void
+    ) async throws -> URL {
         try FileManager.default.createDirectory(
             at: request.outputDirectory, withIntermediateDirectories: true)
         let url = request.outputDirectory
@@ -26,23 +30,12 @@ struct FakeSynthesizer: SpeechSynthesizer {
     }
 }
 
-/// テスト用の要求記録つき合成。無音wavを置く。
-final class CapturingSynthesizer: SpeechSynthesizer, @unchecked Sendable {
-    var captured: TTSRequest?
-    func synthesize(request: TTSRequest) async throws -> URL {
-        captured = request
-        try FileManager.default.createDirectory(
-            at: request.outputDirectory, withIntermediateDirectories: true)
-        let url = request.outputDirectory
-            .appendingPathComponent(MLXAudioTTSService.timestampFileName(), isDirectory: false)
-        try silentWavData().write(to: url, options: .atomic)
-        return url
-    }
-}
-
-/// テスト用の終わらない合成。取り消されると `CancellationError` で終わる。
+/// テスト用の終わらない合成。実行中を報告してから止まる。
 struct HangingSynthesizer: SpeechSynthesizer {
-    func synthesize(request: TTSRequest) async throws -> URL {
+    func synthesize(
+        request: TTSRequest, onStage: @escaping @Sendable (EngineStage) -> Void
+    ) async throws -> URL {
+        onStage(.running)
         try await Task.sleep(for: .seconds(60))
         throw CancellationError()
     }
@@ -76,24 +69,24 @@ func silentWavData() -> Data {
     return data
 }
 
+func makeStore() throws -> SettingsStore {
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    return SettingsStore(fileURL: dir.appendingPathComponent("settings.json", isDirectory: false))
+}
+
+func makeAudio() throws -> URL {
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let url = dir.appendingPathComponent("voice.wav", isDirectory: false)
+    FileManager.default.createFile(atPath: url.path, contents: Data("x".utf8))
+    return url
+}
+
 @Suite("ConvertValidation")
 struct ConvertValidationTests {
-    func makeStore() throws -> SettingsStore {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return SettingsStore(fileURL: dir.appendingPathComponent("settings.json", isDirectory: false))
-    }
-
-    func makeAudio() throws -> URL {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let url = dir.appendingPathComponent("voice.wav", isDirectory: false)
-        FileManager.default.createFile(atPath: url.path, contents: Data("x".utf8))
-        return url
-    }
-
     @Test("初期状態は実行できない")
     @MainActor
     func initialCannotRun() throws {
@@ -173,90 +166,6 @@ struct ConvertValidationTests {
         #expect(jobStore.lastRunSucceeded == nil)
     }
 
-    @Test("Irodori選択時はcaptionと文字起こしが必須")
-    @MainActor
-    func irodoriRequiresCaptionAndTranscription() throws {
-        let jobStore = ConvertJobStore()
-        let viewModel = ConvertViewModel(
-            jobStore: jobStore, store: try makeStore(),
-            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
-        viewModel.acceptAudioURLs([try makeAudio()])
-        viewModel.outputFolderPath = NSTemporaryDirectory()
-        viewModel.ttsModel = TTSModel.irodoriV41Small.rawValue
-        viewModel.speechText = "よむ"
-        #expect(viewModel.canRunSynthesis == false)
-        viewModel.transcriptionText = "起こし済み"
-        #expect(viewModel.canRunSynthesis == false)
-        viewModel.captionText = "落ち着いた声"
-        #expect(viewModel.canRunSynthesis == true)
-    }
-
-    @Test("Qwen選択時はcaptionなしで実行できる")
-    @MainActor
-    func qwenRunsWithoutCaption() throws {
-        let jobStore = ConvertJobStore()
-        let viewModel = ConvertViewModel(
-            jobStore: jobStore, store: try makeStore(),
-            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
-        viewModel.acceptAudioURLs([try makeAudio()])
-        viewModel.outputFolderPath = NSTemporaryDirectory()
-        viewModel.ttsModel = TTSModel.qwen17B.rawValue
-        viewModel.speechText = "よむ"
-        #expect(viewModel.canRunSynthesis == true)
-    }
-
-    @Test("captionなしの旧設定が読める")
-    func oldSettingsDecode() throws {
-        let json = """
-            {"settings":{"showOsNotification":false,"playSound":false,"successSound":"","errorSound":"",\
-            "language":"","appearance":"auto","fontSize":"standard","wallpaper":"none",\
-            "wallpaperOpacity":1.0,"wallpaperBackgroundColor":"#1E1E1E"},\
-            "convert":{"whisperModel":"x","transcriptionText":"","ttsModel":"y","speechText":""}}
-            """
-        let decoded = try JSONDecoder().decode(AppSettingsFile.self, from: Data(json.utf8))
-        #expect(decoded.convert.captionText == "")
-    }
-
-    @Test("Irodori経路はcaption付き要求を送る")
-    @MainActor
-    func irodoriSendsCaption() async throws {
-        let captor = CapturingSynthesizer()
-        let jobStore = ConvertJobStore()
-        let viewModel = ConvertViewModel(
-            jobStore: jobStore, store: try makeStore(),
-            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer(),
-            irodori: captor)
-        viewModel.acceptAudioURLs([try makeAudio()])
-        viewModel.outputFolderPath = NSTemporaryDirectory()
-        viewModel.ttsModel = TTSModel.irodoriV41SmallMF.rawValue
-        viewModel.transcriptionText = "起こし済み"
-        viewModel.captionText = "落ち着いた声"
-        viewModel.speechText = "よむ"
-        viewModel.runSynthesis()
-        while jobStore.isSynthesizing {
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        #expect(jobStore.lastRunSucceeded == true)
-        #expect(captor.captured?.caption == "落ち着いた声")
-        #expect(captor.captured?.model == "Aratako/Irodori-TTS-v4.1-Small-MF")
-    }
-
-    @Test("Irodori選択とcaptionが保存・復元される")
-    @MainActor
-    func irodoriSelectionPersists() throws {
-        let store = try makeStore()
-        let first = ConvertViewModel(
-            jobStore: ConvertJobStore(), store: store,
-            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
-        first.ttsModel = TTSModel.irodoriV41SmallMF.rawValue
-        first.captionText = "落ち着いた声"
-        let second = ConvertViewModel(
-            jobStore: ConvertJobStore(), store: store,
-            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
-        #expect(second.ttsModel == TTSModel.irodoriV41SmallMF.rawValue)
-        #expect(second.captionText == "落ち着いた声")
-    }
-
     @Test("合成実行は取り消せる")
     @MainActor
     func synthesisCancel() async throws {
@@ -275,5 +184,26 @@ struct ConvertValidationTests {
         try await Task.sleep(for: .milliseconds(50))
         #expect(jobStore.isSynthesizing == false)
         #expect(jobStore.lastRunSucceeded == nil)
+    }
+
+    @Test("書き込めない出力フォルダは警告になる")
+    @MainActor
+    func unwritableOutputFolder() throws {
+        let viewModel = ConvertViewModel(
+            jobStore: ConvertJobStore(), store: try makeStore(),
+            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o555], ofItemAtPath: dir.path)
+        viewModel.outputFolderPath = dir.path
+        #expect(viewModel.outputFolderHasError == true)
+        #expect(viewModel.canRunSynthesis == false)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755], ofItemAtPath: dir.path)
+        viewModel.outputFolderPath = NSTemporaryDirectory()
+        viewModel.outputFolderPath = dir.path
+        #expect(viewModel.outputFolderHasError == false)
     }
 }

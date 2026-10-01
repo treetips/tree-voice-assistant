@@ -12,24 +12,33 @@ struct RunLogStoreTests {
         return (RunLogStore(directory: dir), dir)
     }
 
-    @Test("時刻名のログに本文を書く")
-    func writesTimestampedLog() throws {
+    @Test("日単位のログに追記する")
+    func writesDailyLog() throws {
         let (store, dir) = try makeStore()
-        let url = try store.write(engine: "IrodoriTTS", model: "m", lines: ["cmd ok"])
-        #expect(url.deletingLastPathComponent().resolvingSymlinksInPath() == dir.resolvingSymlinksInPath())
-        #expect(url.pathExtension == "log")
-        #expect(url.deletingPathExtension().lastPathComponent.count == 14)
-        let body = try String(contentsOf: url, encoding: .utf8)
-        #expect(body.contains("IrodoriTTS"))
-        #expect(body.contains("cmd ok"))
+        let first = try store.write(engine: "IrodoriTTS", model: "m", lines: ["one"])
+        let second = try store.write(engine: "IrodoriTTS", model: "m", lines: ["two"])
+        #expect(first == second)
+        #expect(first.deletingPathExtension().lastPathComponent.count == 8)
+        #expect(first.pathExtension == "log")
+        #expect(first.deletingLastPathComponent().resolvingSymlinksInPath() == dir.resolvingSymlinksInPath())
+        let body = try String(contentsOf: first, encoding: .utf8)
+        #expect(body.contains("one"))
+        #expect(body.contains("two"))
     }
 
-    @Test("同名衝突時は接尾辞を付ける")
-    func collisionSuffix() throws {
-        let (store, _) = try makeStore()
-        let first = try store.write(engine: "e", model: "m", lines: [], date: Date(timeIntervalSince1970: 0))
-        let second = try store.write(engine: "e", model: "m", lines: [], date: Date(timeIntervalSince1970: 0))
-        #expect(first != second)
-        #expect(second.deletingPathExtension().lastPathComponent.hasSuffix("-02"))
+    @Test("30日より古いログを消す")
+    func rotatesOldLogs() throws {
+        let (store, dir) = try makeStore()
+        let today = Date()
+        let old = try store.write(engine: "e", model: "m", lines: [], date: today.addingTimeInterval(-31 * 86400))
+        let recent = try store.write(engine: "e", model: "m", lines: [], date: today.addingTimeInterval(-10 * 86400))
+        let current = try store.write(engine: "e", model: "m", lines: [], date: today)
+        let other = dir.appendingPathComponent("note.txt", isDirectory: false)
+        try "x".write(to: other, atomically: true, encoding: .utf8)
+        RunLogStore.rotate(directory: dir, today: today)
+        #expect(!FileManager.default.fileExists(atPath: old.path))
+        #expect(FileManager.default.fileExists(atPath: recent.path))
+        #expect(FileManager.default.fileExists(atPath: current.path))
+        #expect(FileManager.default.fileExists(atPath: other.path))
     }
 }
