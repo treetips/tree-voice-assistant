@@ -47,6 +47,11 @@ enum WhisperModel: String, Hashable, Identifiable, CaseIterable {
 enum TTSModel: String, Hashable, Identifiable, CaseIterable {
     case qwen17B = "Qwen3-TTS-12Hz-1.7B"
     case qwen06B = "Qwen3-TTS-12Hz-0.6B"
+    case irodoriV4Large = "Irodori-TTS-v4-Large"
+    case irodoriV4LargeQuantized = "Irodori-TTS-v4-Large-Quantized"
+    case irodoriV41SmallMF = "Irodori-TTS-v4.1-Small-MF"
+    case irodoriV41Small = "Irodori-TTS-v4.1-Small"
+    case irodoriV41SmallQuantized = "Irodori-TTS-v4.1-Small-Quantized"
 
     var id: String { rawValue }
 
@@ -57,8 +62,51 @@ enum TTSModel: String, Hashable, Identifiable, CaseIterable {
         switch self {
         case .qwen17B: return "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-6bit"
         case .qwen06B: return "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16"
+        case .irodoriV4Large, .irodoriV4LargeQuantized, .irodoriV41SmallMF, .irodoriV41Small,
+            .irodoriV41SmallQuantized:
+            return ""
         }
     }
+
+    /// Irodori-TTSか否か。
+    var isIrodori: Bool {
+        switch self {
+        case .irodoriV4Large, .irodoriV4LargeQuantized, .irodoriV41SmallMF, .irodoriV41Small,
+            .irodoriV41SmallQuantized:
+            return true
+        case .qwen17B, .qwen06B: return false
+        }
+    }
+
+    /// Irodori-TTSに渡すHugging Faceチェックポイント。Qwenの場合はnil。
+    /// 量子化版は `リポジトリ/方式` 形式で、既定のint8-weight-onlyを使う。
+    var irodoriHFCheckpoint: String? {        switch self {
+        case .irodoriV4Large: return "Aratako/Irodori-TTS-v4-Large"
+        case .irodoriV4LargeQuantized: return "Aratako/Irodori-TTS-v4-Large-Quantized/int8-weight-only"
+        case .irodoriV41SmallMF: return "Aratako/Irodori-TTS-v4.1-Small-MF"
+        case .irodoriV41Small: return "Aratako/Irodori-TTS-v4.1-Small"
+        case .irodoriV41SmallQuantized:
+            return "Aratako/Irodori-TTS-v4.1-Small-Quantized/int8-weight-only"
+        case .qwen17B, .qwen06B: return nil
+        }
+    }
+}
+
+/// 選択中モデルに対応する合成用パラメータ。
+struct TTSModelResolution: Sendable, Equatable {
+    var modelID: String
+    var caption: String?
+}
+
+/// 選択中モデルに対応する合成用モデルIDとcaptionを解決する。Qwenはcaptionなし。
+func resolveTTSModel(selected: TTSModel, captionText: String) -> TTSModelResolution {
+    if selected.isIrodori {
+        return TTSModelResolution(
+            modelID: selected.irodoriHFCheckpoint ?? "Aratako/Irodori-TTS-v4.1-Small",
+            caption: captionText
+        )
+    }
+    return TTSModelResolution(modelID: selected.mlxAudioModelID, caption: nil)
 }
 
 /// 対応する音声ファイルの拡張子。

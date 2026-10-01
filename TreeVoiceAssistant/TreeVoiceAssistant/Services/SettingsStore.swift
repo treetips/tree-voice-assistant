@@ -7,6 +7,38 @@ struct ConvertSettings: Codable, Equatable {
     var outputFolderPath: String?
     var ttsModel: String
     var speechText: String
+    var captionText: String
+
+    enum CodingKeys: String, CodingKey {
+        case whisperModel
+        case transcriptionText
+        case outputFolderPath
+        case ttsModel
+        case speechText
+        case captionText
+    }
+
+    init(
+        whisperModel: String, transcriptionText: String, outputFolderPath: String?,
+        ttsModel: String, speechText: String, captionText: String = ""
+    ) {
+        self.whisperModel = whisperModel
+        self.transcriptionText = transcriptionText
+        self.outputFolderPath = outputFolderPath
+        self.ttsModel = ttsModel
+        self.speechText = speechText
+        self.captionText = captionText
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        whisperModel = try container.decode(String.self, forKey: .whisperModel)
+        transcriptionText = try container.decode(String.self, forKey: .transcriptionText)
+        outputFolderPath = try container.decodeIfPresent(String.self, forKey: .outputFolderPath)
+        ttsModel = try container.decode(String.self, forKey: .ttsModel)
+        speechText = try container.decode(String.self, forKey: .speechText)
+        captionText = try container.decodeIfPresent(String.self, forKey: .captionText) ?? ""
+    }
 
     static func defaults() -> ConvertSettings {
         ConvertSettings(
@@ -14,7 +46,8 @@ struct ConvertSettings: Codable, Equatable {
             transcriptionText: "",
             outputFolderPath: nil,
             ttsModel: TTSModel.default.rawValue,
-            speechText: ""
+            speechText: "",
+            captionText: ""
         )
     }
 }

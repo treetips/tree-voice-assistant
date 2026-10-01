@@ -8,7 +8,9 @@ struct FakeTranscriptionEngine: TranscriptionEngine {
     var text: String = "仮の文字起こし"
     var error: (any Error & Sendable)?
 
-    func transcribe(audioURL: URL, modelID: String) async throws -> String {
+    func transcribe(
+        audioURL: URL, modelID: String, onStage: @escaping @Sendable (EngineStage) -> Void
+    ) async throws -> String {
         if let error { throw error }
         return text
     }
@@ -16,7 +18,9 @@ struct FakeTranscriptionEngine: TranscriptionEngine {
 
 /// テスト用の仮合成。無音wavを置く。
 struct FakeSynthesizer: SpeechSynthesizer {
-    func synthesize(request: TTSRequest) async throws -> URL {
+    func synthesize(
+        request: TTSRequest, onStage: @escaping @Sendable (EngineStage) -> Void
+    ) async throws -> URL {
         try FileManager.default.createDirectory(
             at: request.outputDirectory, withIntermediateDirectories: true)
         let url = request.outputDirectory
@@ -26,9 +30,12 @@ struct FakeSynthesizer: SpeechSynthesizer {
     }
 }
 
-/// テスト用の終わらない合成。取り消されると `CancellationError` で終わる。
+/// テスト用の終わらない合成。実行中を報告してから止まる。
 struct HangingSynthesizer: SpeechSynthesizer {
-    func synthesize(request: TTSRequest) async throws -> URL {
+    func synthesize(
+        request: TTSRequest, onStage: @escaping @Sendable (EngineStage) -> Void
+    ) async throws -> URL {
+        onStage(.running)
         try await Task.sleep(for: .seconds(60))
         throw CancellationError()
     }
@@ -62,24 +69,24 @@ func silentWavData() -> Data {
     return data
 }
 
+func makeStore() throws -> SettingsStore {
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    return SettingsStore(fileURL: dir.appendingPathComponent("settings.json", isDirectory: false))
+}
+
+func makeAudio() throws -> URL {
+    let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let url = dir.appendingPathComponent("voice.wav", isDirectory: false)
+    FileManager.default.createFile(atPath: url.path, contents: Data("x".utf8))
+    return url
+}
+
 @Suite("ConvertValidation")
 struct ConvertValidationTests {
-    func makeStore() throws -> SettingsStore {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return SettingsStore(fileURL: dir.appendingPathComponent("settings.json", isDirectory: false))
-    }
-
-    func makeAudio() throws -> URL {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let url = dir.appendingPathComponent("voice.wav", isDirectory: false)
-        FileManager.default.createFile(atPath: url.path, contents: Data("x".utf8))
-        return url
-    }
-
     @Test("初期状態は実行できない")
     @MainActor
     func initialCannotRun() throws {
@@ -177,5 +184,26 @@ struct ConvertValidationTests {
         try await Task.sleep(for: .milliseconds(50))
         #expect(jobStore.isSynthesizing == false)
         #expect(jobStore.lastRunSucceeded == nil)
+    }
+
+    @Test("書き込めない出力フォルダは警告になる")
+    @MainActor
+    func unwritableOutputFolder() throws {
+        let viewModel = ConvertViewModel(
+            jobStore: ConvertJobStore(), store: try makeStore(),
+            transcription: FakeTranscriptionEngine(), synthesizer: FakeSynthesizer())
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o555], ofItemAtPath: dir.path)
+        viewModel.outputFolderPath = dir.path
+        #expect(viewModel.outputFolderHasError == true)
+        #expect(viewModel.canRunSynthesis == false)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755], ofItemAtPath: dir.path)
+        viewModel.outputFolderPath = NSTemporaryDirectory()
+        viewModel.outputFolderPath = dir.path
+        #expect(viewModel.outputFolderHasError == false)
     }
 }

@@ -11,6 +11,7 @@
 | 007 | ハイブリッド構成の実装（外部プロセス版TTS） | Accepted | 合成方式 |
 | 008 | 利用上の注意・同意シート | Accepted | 画面・永続化 |
 | 009 | GitHub Releasesによるアプリ更新配布 | Accepted | 配布・更新 |
+| 010 | Irodori-TTSの併設 | Accepted | 合成方式 |
 
 - ステータス凡例
     - 提案済み (Proposed)

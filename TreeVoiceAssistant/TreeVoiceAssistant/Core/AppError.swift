@@ -8,6 +8,8 @@ enum AppError: LocalizedError, Equatable {
     case invalidSettings(reason: String)
     case networkError(reason: String)
     case verificationFailed(reason: String)
+    case gitMissing
+    case synthesisFailed(reason: String, logPath: String)
     case cancelled
 
     var errorDescription: String? {
@@ -24,6 +26,10 @@ enum AppError: LocalizedError, Equatable {
             return "通信に失敗しました: \(reason)"
         case .verificationFailed(let reason):
             return "検証に失敗しました: \(reason)"
+        case .gitMissing:
+            return "gitが見つかりません: Irodori-TTSの取得にgitが必要です"
+        case .synthesisFailed(let reason, let logPath):
+            return "合成に失敗しました: \(reason)\nログ: \(logPath)"
         case .cancelled:
             return "キャンセルされました"
         }

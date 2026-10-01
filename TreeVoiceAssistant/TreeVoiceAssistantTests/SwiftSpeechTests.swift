@@ -104,6 +104,61 @@ struct SwiftSpeechTests {
         #expect(FileManager.default.fileExists(atPath: url.path))
     }
 
+    @Test("失敗時はログを残す")
+    @MainActor
+    func failureWritesLog() async throws {
+        let stub: RunCommand = { _, args, _ in
+            if args == ["sync"] {
+                return ProcessResult(exitCode: 0, stdout: "", stderr: "")
+            }
+            throw AppError.processFailed(executable: "uv", exitCode: 1, output: "boom")
+        }
+        let (service, paths) = try makeService(stub: stub)
+        do {
+            try await service.synthesize(request: makeRequest(outputDirectory: try makeTempDir()))
+            Issue.record("投げられるべき")
+        } catch let AppError.synthesisFailed(reason, logPath) {
+            #expect(reason.contains("終了コード 1"))
+            #expect(logPath.hasPrefix(paths.logsURL.path))
+            #expect(FileManager.default.fileExists(atPath: logPath))
+            let body = try String(contentsOfFile: logPath, encoding: .utf8)
+            #expect(body.contains("boom"))
+        }
+    }
+
+    @Test("実行開始時に残存を掃除する")
+    func sweepsLeftovers() async throws {
+        let stub: RunCommand = { _, args, _ in
+            if args == ["sync"] {
+                return ProcessResult(exitCode: 0, stdout: "", stderr: "")
+            }
+            throw AppError.processFailed(executable: "uv", exitCode: 1, output: "gen down")
+        }
+        let (service, _) = try makeService(stub: stub)
+        let markerDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("tva-sweep-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: markerDir, withIntermediateDirectories: true)
+        let link = markerDir.appendingPathComponent("tree-voice-tts-sleep", isDirectory: false)
+        try FileManager.default.createSymbolicLink(
+            at: link, withDestinationURL: URL(fileURLWithPath: "/bin/sleep"))
+        let leftover = Process()
+        leftover.executableURL = link
+        leftover.arguments = ["60"]
+        try leftover.run()
+        #expect(leftover.isRunning)
+        do {
+            try await service.synthesize(request: makeRequest(outputDirectory: try makeTempDir()))
+            Issue.record("投げられるべき")
+        } catch is AppError {
+        }
+        var waits = 0
+        while leftover.isRunning, waits < 100 {
+            try await Task.sleep(for: .milliseconds(50))
+            waits += 1
+        }
+        #expect(leftover.isRunning == false)
+    }
+
     @Test("生成物が無ければ失敗する")
     @MainActor
     func synthesisWithoutProductFails() async throws {

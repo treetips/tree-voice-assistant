@@ -178,6 +178,13 @@ private struct TranscriptionSection: View {
                             }
                         }
                         .labelsHidden()
+                        if !viewModel.whisperCached {
+                            HelpPopover(
+                                text: text("v.warn.modelDownload"),
+                                icon: "exclamationmark.triangle.fill",
+                                tint: .yellow
+                            )
+                        }
                         Spacer()
                         HelpPopover(text: text("v.help.model"))
                     }
@@ -185,7 +192,8 @@ private struct TranscriptionSection: View {
                 GridRow {
                     RunCancelButtons(
                         runTitle: jobStore.isTranscribing
-                            ? text("v.transcribing") : text("v.label.transcribeRun"),
+                            ? viewModel.stageText(jobStore.transcriptionStage, runningKey: "v.transcribing")
+                            : text("v.label.transcribeRun"),
                         runDisabled: !viewModel.canRunTranscription,
                         runAction: { viewModel.runTranscription() },
                         cancelTitle: text("a.cancel"),
@@ -242,8 +250,23 @@ private struct TtsSection: View {
                             }
                         }
                         .labelsHidden()
+                        if !viewModel.ttsCached {
+                            HelpPopover(
+                                text: text("v.warn.modelDownload"),
+                                icon: "exclamationmark.triangle.fill",
+                                tint: .yellow
+                            )
+                        }
                         Spacer()
                         HelpPopover(text: text("v.help.ttsModel"))
+                    }
+                }
+                if viewModel.isIrodoriSelected {
+                    GridRow {
+                        Text(text("v.label.caption")).appFont(.headline)
+                        TextField(text("v.captionPlaceholder"), text: $viewModel.captionText)
+                            .appFont(.body)
+                            .disabled(jobStore.isSynthesizing)
                     }
                 }
                 GridRow {
@@ -270,7 +293,8 @@ private struct TtsSection: View {
                     HStack(spacing: 12) {
                         GlassCTAButton(
                             title: jobStore.isSynthesizing
-                                ? text("v.synthesizing") : text("v.label.ttsRun"),
+                                ? viewModel.stageText(jobStore.synthesisStage, runningKey: "v.synthesizing")
+                                : text("v.label.ttsRun"),
                             disabled: !viewModel.canRunSynthesis
                         ) {
                             viewModel.runSynthesis()

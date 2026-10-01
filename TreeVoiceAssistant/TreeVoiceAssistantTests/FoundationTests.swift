@@ -13,6 +13,8 @@ struct AppPathsTests {
         #expect(paths.settingsFileURL.path.hasSuffix(".config/tree-voice-assistant/settings.json"))
         #expect(paths.userSoundsURL.path.contains("tree-voice-assistant"))
         #expect(paths.userWallpaperURL.path.contains("tree-voice-assistant"))
+        #expect(paths.modelsURL == base.appendingPathComponent("models", isDirectory: true))
+        #expect(paths.hfHubURL == base.appendingPathComponent("models/hf-hub", isDirectory: true))
     }
 
     @Test("実環境ではtree-voice-assistant配下を指す")
@@ -53,6 +55,35 @@ struct ProcessRunnerTests {
             Issue.record("想定外のエラー: \(error)")
         }
     }
+
+    @Test("環境変数を子プロセスに渡す")
+    func environment() async throws {
+        let runner = ProcessRunner()
+        let result = try await runner.runCancellable(
+            "/bin/sh", args: ["-c", "echo $TVA_TEST_ENV_PING"], environment: ["TVA_TEST_ENV_PING": "pong"])
+        #expect(result.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == "pong")
+    }
+
+    @Test("残存プロセスを掃除する")
+    func terminatesLeftovers() throws {
+        let markerDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("tva-leftover-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: markerDir, withIntermediateDirectories: true)
+        let link = markerDir.appendingPathComponent("sleep", isDirectory: false)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: URL(fileURLWithPath: "/bin/sleep"))
+        let process = Process()
+        process.executableURL = link
+        process.arguments = ["60"]
+        try process.run()
+        #expect(process.isRunning)
+        ProcessRunner.terminateLeftovers(matching: [markerDir.lastPathComponent])
+        var waits = 0
+        while process.isRunning, waits < 100 {
+            Thread.sleep(forTimeInterval: 0.05)
+            waits += 1
+        }
+        #expect(process.isRunning == false)
+    }
 }
 
 @Suite("L10n")
@@ -78,5 +109,34 @@ struct AppThemeTests {
         #expect(AppTheme.fontScale(for: "standard") == 1.0)
         #expect(AppTheme.fontScale(for: "large") == 1.35)
         #expect(AppTheme.fontScale(for: "unknown") == 1.0)
+    }
+}
+
+@Suite("SaveCoalescer")
+struct SaveCoalescerTests {
+    @Test("連続要求は1回にまとまる")
+    @MainActor
+    func coalesces() async throws {
+        let saver = SaveCoalescer()
+        var count = 0
+        saver.schedule { count += 1 }
+        saver.schedule { count += 1 }
+        saver.schedule(delay: .milliseconds(50)) { count += 1 }
+        var waits = 0
+        while count == 0, waits < 200 {
+            try await Task.sleep(for: .milliseconds(10))
+            waits += 1
+        }
+        #expect(count == 1)
+    }
+
+    @Test("flushは即時実行する")
+    @MainActor
+    func flushRunsNow() {
+        let saver = SaveCoalescer()
+        var count = 0
+        saver.schedule(delay: .seconds(60)) { count += 1 }
+        saver.flush { count += 1 }
+        #expect(count == 1)
     }
 }

@@ -6,16 +6,30 @@ import WhisperKit
 final class WhisperKitEngine: TranscriptionEngine, @unchecked Sendable {
     private let lock = NSLock()
     private var pipes: [String: WhisperKit] = [:]
+    private let cacheChecker: ModelCacheChecker
+    private let downloadBase: URL?
+
+    init(cacheChecker: ModelCacheChecker = ModelCacheChecker(), downloadBase: URL? = nil) {
+        self.cacheChecker = cacheChecker
+        // HubApiは `downloadBase/models/<repo>` に置くため、基準を渡して `models/` 配下に収める。
+        self.downloadBase = downloadBase ?? AppPaths().projectDirectoryURL
+    }
 
     /// 日本語の文字起こしを行う。
-    func transcribe(audioURL: URL, modelID: String) async throws -> String {
+    func transcribe(
+        audioURL: URL, modelID: String, onStage: @escaping @Sendable (EngineStage) -> Void
+    ) async throws -> String {
         let pipe: WhisperKit
         if let cached = cachedPipe(for: modelID) {
             pipe = cached
+            onStage(.running)
         } else {
-            let created = try await WhisperKit(WhisperKitConfig(model: modelID))
+            onStage(cacheChecker.isWhisperCached(modelID) ? .running : .preparingModel)
+            let created = try await WhisperKit(
+                WhisperKitConfig(model: modelID, downloadBase: downloadBase))
             storePipe(created, for: modelID)
             pipe = created
+            onStage(.running)
         }
         let options = DecodingOptions(language: "ja")
         let results = try await pipe.transcribe(audioPath: audioURL.path, decodeOptions: options)

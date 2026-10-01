@@ -55,6 +55,16 @@ struct AppPaths: Sendable {
         projectDirectoryURL.appendingPathComponent("tools", isDirectory: true)
     }
 
+    /// `<基準>/models`。取得済みモデル（Whisper・HF形式）の配置先。
+    var modelsURL: URL {
+        projectDirectoryURL.appendingPathComponent("models", isDirectory: true)
+    }
+
+    /// Python系のHFキャッシュ。`HF_HUB_CACHE` に渡す。
+    var hfHubURL: URL {
+        modelsURL.appendingPathComponent("hf-hub", isDirectory: true)
+    }
+
     /// 内蔵 `uv` の配置先。`<基準>/tools/bin/uv`。
     var bundledUvURL: URL {
         toolsURL.appendingPathComponent("bin/uv", isDirectory: false)
@@ -63,5 +73,10 @@ struct AppPaths: Sendable {
     /// TTS実行環境の配置先。`<基準>/tools/tts`（pyproject＋.venv）。
     var ttsToolsURL: URL {
         toolsURL.appendingPathComponent("tts", isDirectory: true)
+    }
+
+    /// Irodori実行環境の配置先。`<基準>/tools/tts-irodori`（pyproject＋.venv＋複製）。
+    var ttsIrodoriURL: URL {
+        toolsURL.appendingPathComponent("tts-irodori", isDirectory: true)
     }
 }
