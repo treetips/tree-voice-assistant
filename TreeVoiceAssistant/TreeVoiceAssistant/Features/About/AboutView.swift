@@ -43,7 +43,7 @@ struct AboutView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                GroupBox {
+                GlassCard {
                     VStack(alignment: .leading, spacing: 8) {
                         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                             GridRow {
@@ -95,7 +95,7 @@ struct AboutView: View {
                     Text(t("a.group.app")).appFont(.headline)
                 }
 
-                GroupBox {
+                GlassCard {
                     Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
                         GridRow {
                             Text(t("a.col.binary")).appFont(.headline).bold()
