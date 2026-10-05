@@ -15,8 +15,8 @@ struct GlassCTAButton: View {
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
                 .glassEffect(
-                    .regular.tint(Color.accentColor.opacity(0.5)).interactive(),
-                    in: RoundedRectangle(cornerRadius: 14)
+                    .regular.tint(Color.accentColor.opacity(GlassStyle.ctaTintOpacity)).interactive(),
+                    in: RoundedRectangle(cornerRadius: GlassStyle.ctaCornerRadius)
                 )
         }
         .buttonStyle(.plain)

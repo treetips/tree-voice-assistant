@@ -59,7 +59,7 @@ struct ConvertView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Color.clear
                     .frame(height: 1)
-                GroupBox {
+                GlassCard {
                     AudioDropView(
                         isEnabled: inputEnabled,
                         onDropURLs: { viewModel.acceptAudioURLs($0) },
@@ -110,7 +110,7 @@ struct ConvertView: View {
 
                 TranscriptionSection(viewModel: viewModel, jobStore: jobStore, text: t)
 
-                GroupBox {
+                GlassCard {
                     HStack {
                         Text(t("v.label.outputFolder")).appFont(.headline)
                         Button {
@@ -167,7 +167,7 @@ private struct TranscriptionSection: View {
     var text: (String) -> String
 
     var body: some View {
-        GroupBox {
+        GlassCard {
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                 GridRow {
                     Text(text("v.label.model")).appFont(.headline)
@@ -239,7 +239,7 @@ private struct TtsSection: View {
     var text: (String) -> String
 
     var body: some View {
-        GroupBox {
+        GlassCard {
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                 GridRow {
                     Text(text("v.label.model")).appFont(.headline)
