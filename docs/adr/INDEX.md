@@ -14,6 +14,7 @@
 | 010 | Irodori-TTSの併設 | Accepted | 合成方式 |
 | 011 | 全画面のカードをLiquid Glassに共通化 | Accepted | 画面・共通部品 |
 | 012 | 壁紙一覧で圧縮フォーマットを扱えるようにする | Accepted | 壁紙・設定 |
+| 013 | PRラベルの自動付与によるリリースノート分類 | Accepted | CI・配布 |
 
 - ステータス凡例
     - 提案済み (Proposed)
