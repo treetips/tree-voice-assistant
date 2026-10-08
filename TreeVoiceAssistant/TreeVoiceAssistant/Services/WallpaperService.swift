@@ -97,7 +97,7 @@ struct WallpaperService: Sendable {
         return contents.filter { url in
             let values = try? url.resourceValues(forKeys: [.isRegularFileKey])
             guard values?.isRegularFile == true else { return false }
-            return ["jpg", "jpeg", "png"].contains(url.pathExtension.lowercased())
+            return ["jpg", "jpeg", "png", "jxl", "avif", "webp"].contains(url.pathExtension.lowercased())
         }
     }
 }
