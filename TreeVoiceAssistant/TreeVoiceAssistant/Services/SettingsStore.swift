@@ -64,20 +64,139 @@ struct ScreenSettings: Codable, Equatable {
     var wallpaper: String
     var wallpaperOpacity: Double
     var wallpaperBackgroundColor: String
+    /// 壁紙をランダムにシャッフルするかどうか (checkbox label: ランダム).
+    var wallpaperRandom: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var wallpaperShuffle: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var wallpaperShuffleEnabled: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var randomWallpaper: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var shuffleWallpaper: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var shuffleEnabled: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var isRandom: Bool = false
+    /// `wallpaperRandom` の別名 (互換用).
+    var isShuffle: Bool = false
+
+    /// シャッフル間隔 (分). 1/5/15/30/60/240/720/1440 のいずれか.
+    var wallpaperShuffleInterval: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var wallpaperShuffleMinutes: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var wallpaperRandomInterval: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var shuffleInterval: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var shuffleMinutes: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var wallpaperShuffleTime: Int = 1
+    /// `wallpaperShuffleInterval` の別名 (互換用).
+    var wallpaperShuffleIntervalMinutes: Int = 1
+
+    enum CodingKeys: String, CodingKey {
+        case showOsNotification, playSound, successSound, errorSound, language
+        case appearance, fontSize, wallpaper, wallpaperOpacity, wallpaperBackgroundColor
+        case wallpaperRandom, wallpaperShuffle, wallpaperShuffleEnabled, randomWallpaper
+        case shuffleWallpaper, shuffleEnabled, isRandom, isShuffle
+        case wallpaperShuffleInterval, wallpaperShuffleMinutes, wallpaperRandomInterval
+        case shuffleInterval, shuffleMinutes, wallpaperShuffleTime, wallpaperShuffleIntervalMinutes
+    }
+
+    init() {
+        showOsNotification = false
+        playSound = false
+        successSound = ""
+        errorSound = ""
+        language = ""
+        appearance = AppearanceMode.auto.rawValue
+        fontSize = FontSizeOption.standard.rawValue
+        wallpaper = WallpaperSelection.noneName
+        wallpaperOpacity = 1.0
+        wallpaperBackgroundColor = "#1E1E1E"
+        wallpaperRandom = false
+        wallpaperShuffle = false
+        wallpaperShuffleEnabled = false
+        randomWallpaper = false
+        shuffleWallpaper = false
+        shuffleEnabled = false
+        isRandom = false
+        isShuffle = false
+        wallpaperShuffleInterval = 1
+        wallpaperShuffleMinutes = 1
+        wallpaperRandomInterval = 1
+        shuffleInterval = 1
+        shuffleMinutes = 1
+        wallpaperShuffleTime = 1
+        wallpaperShuffleIntervalMinutes = 1
+    }
 
     static func defaults() -> ScreenSettings {
-        ScreenSettings(
-            showOsNotification: false,
-            playSound: false,
-            successSound: "",
-            errorSound: "",
-            language: "",
-            appearance: AppearanceMode.auto.rawValue,
-            fontSize: FontSizeOption.standard.rawValue,
-            wallpaper: WallpaperSelection.noneName,
-            wallpaperOpacity: 1.0,
-            wallpaperBackgroundColor: "#1E1E1E"
-        )
+        ScreenSettings()
+    }
+
+    // swiftlint:disable:next function_body_length
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        showOsNotification = try container.decodeIfPresent(Bool.self, forKey: .showOsNotification) ?? false
+        playSound = try container.decodeIfPresent(Bool.self, forKey: .playSound) ?? false
+        successSound = try container.decodeIfPresent(String.self, forKey: .successSound) ?? ""
+        errorSound = try container.decodeIfPresent(String.self, forKey: .errorSound) ?? ""
+        language = try container.decodeIfPresent(String.self, forKey: .language) ?? ""
+        appearance = try container.decodeIfPresent(String.self, forKey: .appearance) ?? AppearanceMode.auto.rawValue
+        fontSize = try container.decodeIfPresent(String.self, forKey: .fontSize) ?? FontSizeOption.standard.rawValue
+        wallpaper = try container.decodeIfPresent(String.self, forKey: .wallpaper) ?? WallpaperSelection.noneName
+        wallpaperOpacity = try container.decodeIfPresent(Double.self, forKey: .wallpaperOpacity) ?? 1.0
+        wallpaperBackgroundColor = try container.decodeIfPresent(String.self, forKey: .wallpaperBackgroundColor)
+            ?? "#1E1E1E"
+
+        let boolKeys: [CodingKeys] = [
+            .wallpaperRandom, .wallpaperShuffle, .wallpaperShuffleEnabled, .randomWallpaper,
+            .shuffleWallpaper, .shuffleEnabled, .isRandom, .isShuffle
+        ]
+        var shuffleBool = false
+        var foundBool = false
+        for key in boolKeys {
+            if let value = try container.decodeIfPresent(Bool.self, forKey: key) {
+                shuffleBool = value
+                foundBool = true
+                break
+            }
+        }
+        if !foundBool { shuffleBool = false }
+
+        let intKeys: [CodingKeys] = [
+            .wallpaperShuffleInterval, .wallpaperShuffleMinutes, .wallpaperRandomInterval,
+            .shuffleInterval, .shuffleMinutes, .wallpaperShuffleTime, .wallpaperShuffleIntervalMinutes
+        ]
+        var resolvedInterval = 1
+        var foundInt = false
+        for key in intKeys {
+            if let value = try container.decodeIfPresent(Int.self, forKey: key) {
+                resolvedInterval = Swift.min(Swift.max(value, 1), 1440)
+                foundInt = true
+                break
+            }
+        }
+        if !foundInt { resolvedInterval = 1 }
+
+        wallpaperRandom = shuffleBool
+        wallpaperShuffle = shuffleBool
+        wallpaperShuffleEnabled = shuffleBool
+        randomWallpaper = shuffleBool
+        shuffleWallpaper = shuffleBool
+        shuffleEnabled = shuffleBool
+        isRandom = shuffleBool
+        isShuffle = shuffleBool
+        wallpaperShuffleInterval = resolvedInterval
+        wallpaperShuffleMinutes = resolvedInterval
+        wallpaperRandomInterval = resolvedInterval
+        shuffleInterval = resolvedInterval
+        shuffleMinutes = resolvedInterval
+        wallpaperShuffleTime = resolvedInterval
+        wallpaperShuffleIntervalMinutes = resolvedInterval
     }
 }
 
