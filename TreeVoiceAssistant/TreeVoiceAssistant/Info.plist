@@ -8,6 +8,8 @@
 	<string>Tree Voice Assistant</string>
 	<key>CFBundleExecutable</key>
 	<string>TreeVoiceAssistant</string>
+	<key>CFBundleIconFile</key>
+	<string>TreeVoiceAssistant</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.treetips.TreeVoiceAssistant</string>
 	<key>CFBundleInfoDictionaryVersion</key>
