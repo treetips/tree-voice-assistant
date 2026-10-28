@@ -18,6 +18,14 @@ final class SettingsViewModel { // swiftlint:disable:this type_body_length
     var errorSound: String = "" {
         didSet { scheduleSave() }
     }
+    /// 成功時サウンドをランダム再生するか (checkbox label: ランダム)。
+    var successSoundRandom: Bool = false {
+        didSet { scheduleSave() }
+    }
+    /// 失敗時サウンドをランダム再生するか (checkbox label: ランダム)。
+    var errorSoundRandom: Bool = false {
+        didSet { scheduleSave() }
+    }
     var successSounds: [SoundOption] = []
     var errorSounds: [SoundOption] = []
     var language: String = "" {
@@ -228,6 +236,8 @@ final class SettingsViewModel { // swiftlint:disable:this type_body_length
         errorSound = soundService.resolveSelected(
             saved.errorSound, options: errorSounds
         )
+        successSoundRandom = saved.successSoundRandom
+        errorSoundRandom = saved.errorSoundRandom
         // プルダウン先頭に「背景無し」を追加する。
         wallpapers = [WallpaperOption(name: WallpaperSelection.noneName, isBundled: false)]
             + wallpaperService.listWallpapers()
@@ -244,6 +254,8 @@ final class SettingsViewModel { // swiftlint:disable:this type_body_length
         updated.settings.playSound = playSound
         updated.settings.successSound = successSound
         updated.settings.errorSound = errorSound
+        updated.settings.successSoundRandom = successSoundRandom
+        updated.settings.errorSoundRandom = errorSoundRandom
         updated.settings.language = language
         updated.settings.appearance = appearance
         updated.settings.fontSize = fontSize

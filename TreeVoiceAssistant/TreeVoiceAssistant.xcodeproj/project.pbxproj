@@ -42,6 +42,7 @@
 		E40000000000000000000023 /* UpdateLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000023 /* UpdateLogicTests.swift */; };
 		E40000000000000000000024 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000024 /* SettingsStoreTests.swift */; };
 		E40000000000000000000025 /* MediaServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000025 /* MediaServicesTests.swift */; };
+		E40000000000000000000040 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000040 /* SettingsViewModelTests.swift */; };
 		E40000000000000000000026 /* FoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000026 /* FoundationTests.swift */; };
 		E40000000000000000000027 /* ConvertValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000027 /* ConvertValidationTests.swift */; };
 		E40000000000000000000031 /* IrodoriTTSServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40000000000000000000031 /* IrodoriTTSServiceTests.swift */; };
@@ -101,6 +102,7 @@
 		F40000000000000000000023 /* UpdateLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateLogicTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000024 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000025 /* MediaServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServicesTests.swift; sourceTree = "<group>"; };
+		F40000000000000000000040 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000026 /* FoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000027 /* ConvertValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertValidationTests.swift; sourceTree = "<group>"; };
 		F40000000000000000000031 /* IrodoriTTSServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IrodoriTTSServiceTests.swift; sourceTree = "<group>"; };
@@ -179,6 +181,7 @@
 				F40000000000000000000023 /* UpdateLogicTests.swift */,
 				F40000000000000000000024 /* SettingsStoreTests.swift */,
 				F40000000000000000000025 /* MediaServicesTests.swift */,
+				F40000000000000000000040 /* SettingsViewModelTests.swift */,
 				F40000000000000000000026 /* FoundationTests.swift */,
 				F40000000000000000000027 /* ConvertValidationTests.swift */,
 				F40000000000000000000031 /* IrodoriTTSServiceTests.swift */,
@@ -402,6 +405,7 @@
 				E40000000000000000000023 /* UpdateLogicTests.swift in Sources */,
 				E40000000000000000000024 /* SettingsStoreTests.swift in Sources */,
 				E40000000000000000000025 /* MediaServicesTests.swift in Sources */,
+				E40000000000000000000040 /* SettingsViewModelTests.swift in Sources */,
 				E40000000000000000000026 /* FoundationTests.swift in Sources */,
 				E40000000000000000000027 /* ConvertValidationTests.swift in Sources */,
 				E40000000000000000000031 /* IrodoriTTSServiceTests.swift in Sources */,

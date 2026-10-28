@@ -65,15 +65,18 @@ struct SettingsView: View { // swiftlint:disable:this type_body_length
                                     titleKey: "s.successSound",
                                     selection: $viewModel.successSound,
                                     options: viewModel.successSounds,
-                                    enabled: viewModel.playSound
+                                    enabled: viewModel.playSound && !viewModel.successSoundRandom
                                 )
+                                Toggle(isOn: $viewModel.successSoundRandom) {
+                                    Text(randomLabel).appFont(.body)
+                                }
                                 Button {
                                     viewModel.playSuccessSound()
                                 } label: {
                                     Image(systemName: "play.fill")
                                 }
                                 .help(t("s.help.playThis"))
-                                .disabled(viewModel.successSound.isEmpty)
+                                .disabled(viewModel.successSoundRandom || viewModel.successSound.isEmpty)
                                 Spacer()
                                 HelpPopover(text: t("s.help.successSound"))
                             }
@@ -85,15 +88,18 @@ struct SettingsView: View { // swiftlint:disable:this type_body_length
                                     titleKey: "s.errorSound",
                                     selection: $viewModel.errorSound,
                                     options: viewModel.errorSounds,
-                                    enabled: viewModel.playSound
+                                    enabled: viewModel.playSound && !viewModel.errorSoundRandom
                                 )
+                                Toggle(isOn: $viewModel.errorSoundRandom) {
+                                    Text(randomLabel).appFont(.body)
+                                }
                                 Button {
                                     viewModel.playErrorSound()
                                 } label: {
                                     Image(systemName: "play.fill")
                                 }
                                 .help(t("s.help.playThis"))
-                                .disabled(viewModel.errorSound.isEmpty)
+                                .disabled(viewModel.errorSoundRandom || viewModel.errorSound.isEmpty)
                                 Spacer()
                                 HelpPopover(text: t("s.help.errorSound"))
                             }
