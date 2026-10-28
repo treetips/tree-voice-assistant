@@ -2,6 +2,9 @@ import AppKit
 import Combine
 import SwiftUI
 
+/// 背景画像切替のクロスフェード時間（秒）。
+private let wallpaperCrossfadeSeconds: Double = 0.5
+
 /// 左サイドナビ＋右コンテンツ。
 /// 背景に設定画面で選んだ壁紙（不透明度・背景色付き）を表示し、選択言語を適用する。
 /// 更新ダイアログは常時表示のここで出す（メニュー操作時も前面に表示するため）。
@@ -10,6 +13,10 @@ struct RootView: View {
     @State private var settings: SettingsViewModel
     @State private var updateCheck: UpdateCheckController
     @State private var convertJobStore: ConvertJobStore
+    // クロスフェード中に前面の下へ置いておく直前の壁紙。フェード完了後に解放する。
+    @State private var outgoingWallpaper: OutgoingWallpaper?
+    // 直前に背景画像の切替が起きた時刻。フェードの中断判定に使う。
+    @State private var lastWallpaperChangeDate = Date.distantPast
     @State private var showUsageConsent = false
     private let agreementStore = AgreementStore(paths: AppPaths())
 
@@ -236,26 +243,82 @@ struct RootView: View {
         parseHex(settings.effectiveWallpaperBackgroundColorHex) ?? .white
     }
 
+    /// 表示対象の壁紙URL。「背景無し」選択時はnil。
+    private var wallpaperURL: URL? {
+        settings.wallpaperFileURL()
+    }
+
+    /// 直近の切替から、フェードと裏面解放が静まるまでの期間内かどうか。
+    /// 期間内の追加切替はフェードを打ち切り即時切替にする。
+    private var isWallpaperFadeSuppressed: Bool {
+        lastWallpaperChangeDate.addingTimeInterval(wallpaperCrossfadeSeconds * 2) > Date.now
+    }
+
     @ViewBuilder
     private var backgroundImage: some View {
-        if let url = settings.wallpaperFileURL(),
-           let image = NSImage(contentsOf: url) {
-            GeometryReader { geometry in
-                let aspect = image.size.width / max(image.size.height, 1)
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(
-                        width: geometry.size.height * aspect,
-                        height: geometry.size.height
-                    )
-                    .clipped()
-                    .position(
-                        x: geometry.frame(in: .local).midX,
-                        y: geometry.frame(in: .local).midY
-                    )
+        ZStack {
+            // 直前の壁紙。不透明のまま背面に置き、新壁紙をその上へフェードインさせる。
+            // 旧画像だけをフェードアウトさせると中間点で新旧が半透明になり、
+            // 背景色が透けて一瞬濁って見えるため、不透明の裏面で隙間を埋める。
+            if let outgoing = outgoingWallpaper {
+                wallpaperLayer(outgoing.image)
+                    .opacity(settings.wallpaperOpacity)
+                    .transition(.opacity)
+                    .task(id: outgoing.url) {
+                        // フェード完了後に背面レイヤを解放する。解放もフェードさせることで、
+                        // 不透明度が1未満のときに透明度が一度跳ねるのを防ぐ。
+                        do {
+                            try await Task.sleep(for: .milliseconds(Int(wallpaperCrossfadeSeconds * 1000)))
+                        } catch {
+                            // 解放待ちの間に次の切り替えが始まった場合は何もしない。
+                            return
+                        }
+                        withAnimation(.easeInOut(duration: wallpaperCrossfadeSeconds)) {
+                            outgoingWallpaper = nil
+                        }
+                    }
             }
-            .opacity(settings.wallpaperOpacity)
+            if let url = wallpaperURL, let image = NSImage(contentsOf: url) {
+                wallpaperLayer(image)
+                    .opacity(settings.wallpaperOpacity)
+                    .id(url)
+                    .transition(.opacity)
+            }
+        }
+        .animation(
+            isWallpaperFadeSuppressed ? nil : .easeInOut(duration: wallpaperCrossfadeSeconds), value: wallpaperURL
+        )
+        .onChange(of: wallpaperURL) { oldURL, newURL in
+            guard let oldURL, let newURL, oldURL != newURL else { return }
+            let changeDate = Date.now
+            defer { lastWallpaperChangeDate = changeDate }
+            // フェード中の追加切替では裏面を張り替えない。
+            // 裏面と進行中のフェードアウト残骸の内容が食い違い画像がガタつくため。
+            // .animation 側がこの時刻でフェードを無効化し、即時切替になる。
+            guard !isWallpaperFadeSuppressed else { return }
+            // 「背景無し」への切り替えは新壁紙が無いため背面レイヤを張らず、
+            // 旧壁紙のフェードアウトでそのまま背景色へ戻す。
+            guard let outgoingImage = NSImage(contentsOf: oldURL) else { return }
+            outgoingWallpaper = OutgoingWallpaper(url: oldURL, image: outgoingImage)
+        }
+    }
+
+    /// 壁紙1枚のレイヤ。縦にピッタリ合わせ、アスペクト比は維持する。
+    private func wallpaperLayer(_ image: NSImage) -> some View {
+        GeometryReader { geometry in
+            let aspect = image.size.width / max(image.size.height, 1)
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(
+                    width: geometry.size.height * aspect,
+                    height: geometry.size.height
+                )
+                .clipped()
+                .position(
+                    x: geometry.frame(in: .local).midX,
+                    y: geometry.frame(in: .local).midY
+                )
         }
     }
 
@@ -270,6 +333,12 @@ struct RootView: View {
         let blue = Double(number & 0xFF) / 255
         return Color(red: red, green: green, blue: blue, opacity: alpha)
     }
+}
+
+/// クロスフェード中に背面へ残しておく直前の壁紙。
+private struct OutgoingWallpaper {
+    let url: URL
+    let image: NSImage
 }
 
 /// 実行中メニュー用のローディングアイコン。
