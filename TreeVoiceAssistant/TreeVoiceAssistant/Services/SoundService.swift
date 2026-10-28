@@ -62,6 +62,19 @@ final class SoundService: Sendable {
         return options[0].name
     }
 
+    /// 変換終了時に再生するサウンドを決定する。ランダム有効時はユーザー配置サウンド
+    /// のみから抽選する（Why not: 同梱サンプルを含めると仕様の「サンプルは非対象」に
+    /// 反する）ため。ユーザー配置が無い場合は選択中のサウンドへフォールバックし、
+    /// 音が鳴らない事態を防ぐ。
+    func resolvePlaybackOption(success: Bool, name: String, random: Bool) -> SoundOption? {
+        let options = listSounds(success: success)
+        if random, let chosen = options.filter({ !$0.isBundled }).randomElement() {
+            return chosen
+        }
+        let resolved = resolveSelected(name, options: options)
+        return options.first(where: { $0.name == resolved })
+    }
+
     /// 再生用プレイヤーを作る。呼び出し元が保持して再生終了まで破棄しないこと。
     func makePlayer(for option: SoundOption, userDirectory: URL? = nil) -> AVAudioPlayer? {
         let url: URL

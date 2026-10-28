@@ -63,6 +63,29 @@ struct SettingsStoreTests {
         #expect(first == second)
     }
 
+    @Test("サウンドランダム設定の初期値と保存")
+    func soundRandom() throws {
+        let (store, file) = try makeStore()
+        #expect(try store.load(maxParallel: 8).settings.successSoundRandom == false)
+        #expect(try store.load(maxParallel: 8).settings.errorSoundRandom == false)
+        var saved = try store.load(maxParallel: 8)
+        saved.settings.successSoundRandom = true
+        saved.settings.errorSoundRandom = true
+        try store.save(saved)
+        let reloaded = try store.load(maxParallel: 8)
+        #expect(reloaded.settings.successSoundRandom == true)
+        #expect(reloaded.settings.errorSoundRandom == true)
+        // キーが無い旧設定JSONは false で復元する。
+        let legacyConvert = #"{"convert":{"whisperModel":"b","transcriptionText":"","ttsModel":"b","#
+        let legacyJSON = legacyConvert
+            + #""speechText":""},"settings":{"playSound":true}}"#
+        try legacyJSON.write(to: file, atomically: true, encoding: .utf8)
+        let legacy = try store.load(maxParallel: 8)
+        #expect(legacy.settings.successSoundRandom == false)
+        #expect(legacy.settings.errorSoundRandom == false)
+        #expect(legacy.settings.playSound == true)
+    }
+
     @Test("色バリデーション")
     func colorValidation() {
         #expect(SettingsStore.isValidColor("#FFFFFF"))

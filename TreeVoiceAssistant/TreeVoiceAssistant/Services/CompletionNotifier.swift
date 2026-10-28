@@ -39,14 +39,14 @@ struct CompletionNotifier: Sendable {
             let body = L10n.string(allSuccess ? "notify.success" : "notify.failure", language: language)
             await notificationService.notify(body: body)
         }
-        if settings.playSound {
-            let name = allSuccess ? settings.successSound : settings.errorSound
-            let options = soundService.listSounds(success: allSuccess)
-            let resolved = soundService.resolveSelected(name, options: options)
-            if let option = options.first(where: { $0.name == resolved }),
-               let player = soundService.makePlayer(for: option) {
-                return player
-            }
+        if settings.playSound,
+           let option = soundService.resolvePlaybackOption(
+               success: allSuccess,
+               name: allSuccess ? settings.successSound : settings.errorSound,
+               random: allSuccess ? settings.successSoundRandom : settings.errorSoundRandom
+           ),
+           let player = soundService.makePlayer(for: option) {
+            return player
         }
         return nil
     }

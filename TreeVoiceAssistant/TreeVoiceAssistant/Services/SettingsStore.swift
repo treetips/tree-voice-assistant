@@ -58,6 +58,10 @@ struct ScreenSettings: Codable, Equatable {
     var playSound: Bool
     var successSound: String
     var errorSound: String
+    /// 成功時サウンドをランダム再生するか (checkbox label: ランダム).
+    var successSoundRandom: Bool = false
+    /// 失敗時サウンドをランダム再生するか (checkbox label: ランダム).
+    var errorSoundRandom: Bool = false
     var language: String
     var appearance: String
     var fontSize: String
@@ -97,7 +101,8 @@ struct ScreenSettings: Codable, Equatable {
     var wallpaperShuffleIntervalMinutes: Int = 1
 
     enum CodingKeys: String, CodingKey {
-        case showOsNotification, playSound, successSound, errorSound, language
+        case showOsNotification, playSound, successSound, errorSound, successSoundRandom
+        case errorSoundRandom, language
         case appearance, fontSize, wallpaper, wallpaperOpacity, wallpaperBackgroundColor
         case wallpaperRandom, wallpaperShuffle, wallpaperShuffleEnabled, randomWallpaper
         case shuffleWallpaper, shuffleEnabled, isRandom, isShuffle
@@ -110,6 +115,8 @@ struct ScreenSettings: Codable, Equatable {
         playSound = false
         successSound = ""
         errorSound = ""
+        successSoundRandom = false
+        errorSoundRandom = false
         language = ""
         appearance = AppearanceMode.auto.rawValue
         fontSize = FontSizeOption.standard.rawValue
@@ -144,6 +151,8 @@ struct ScreenSettings: Codable, Equatable {
         playSound = try container.decodeIfPresent(Bool.self, forKey: .playSound) ?? false
         successSound = try container.decodeIfPresent(String.self, forKey: .successSound) ?? ""
         errorSound = try container.decodeIfPresent(String.self, forKey: .errorSound) ?? ""
+        successSoundRandom = try container.decodeIfPresent(Bool.self, forKey: .successSoundRandom) ?? false
+        errorSoundRandom = try container.decodeIfPresent(Bool.self, forKey: .errorSoundRandom) ?? false
         language = try container.decodeIfPresent(String.self, forKey: .language) ?? ""
         appearance = try container.decodeIfPresent(String.self, forKey: .appearance) ?? AppearanceMode.auto.rawValue
         fontSize = try container.decodeIfPresent(String.self, forKey: .fontSize) ?? FontSizeOption.standard.rawValue
