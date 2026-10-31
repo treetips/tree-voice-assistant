@@ -50,4 +50,20 @@ struct UpdateLogicTests {
                 destination: base.appendingPathComponent("Dest.app", isDirectory: false))
         }
     }
+
+    @Test("更新確認結果はサイドナビの更新カード状態に解決する")
+    @MainActor
+    func resolveCard() {
+        let info = UpdateInfo(version: "0.1.0", build: 2, url: "https://example.com/a.zip", sha256: "x")
+        #expect(UpdateCheckController.resolveCard(for: .available(info)) == .available(info))
+        // 更新なし・確認失敗どちらも「更新なし」カードを表示する。
+        #expect(UpdateCheckController.resolveCard(for: .latest) == .noUpdate)
+        #expect(UpdateCheckController.resolveCard(for: .failed("offline")) == .noUpdate)
+    }
+
+    @Test("更新なしカードの文言")
+    func noUpdateCardText() {
+        #expect(L10n.string("nav.updateNone", language: "ja") == "アップデートは有りません")
+        #expect(L10n.string("nav.updateNone", language: "en") == "No update available")
+    }
 }

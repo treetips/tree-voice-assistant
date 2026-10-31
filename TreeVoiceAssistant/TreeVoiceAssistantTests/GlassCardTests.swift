@@ -23,6 +23,13 @@ struct GlassCardTests {
         #expect(GlassStyle.ctaCornerRadius == 14)
     }
 
+    @Test("更新カードの濃さと角丸は共通定義から参照できる")
+    func updateCardStyleIsCentralized() {
+        #expect(GlassStyle.updateCardTintOpacity == 0.5)
+        #expect(GlassStyle.updateCardNoneTintOpacity == 0.05)
+        #expect(GlassStyle.updateCardCornerRadius == 14)
+    }
+
     @Test("カードは場所ごとに背景色を上書きできる")
     func cardTintIsOverridable() {
         let defaultCard = GlassCard(tint: nil) {

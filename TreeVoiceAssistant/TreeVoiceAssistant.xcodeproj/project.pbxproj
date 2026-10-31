@@ -20,6 +20,7 @@
 		E10000000000000000000008 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000008 /* AboutView.swift */; };
 		E10000000000000000000009 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* Localizable.xcstrings */; };
 		E10000000000000000000015 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000015 /* ConsentView.swift */; };
+		E10000000000000000000016 /* UpdateCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* UpdateCardView.swift */; };
 		E30000000000000000000001 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* AppError.swift */; };
 		E30000000000000000000015 /* GlassCTAButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000015 /* GlassCTAButton.swift */; };
 		E30000000000000000000027 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000027 /* GlassCard.swift */; };
@@ -79,6 +80,7 @@
 		F10000000000000000000008 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		F10000000000000000000009 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F10000000000000000000015 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
+		F10000000000000000000016 /* UpdateCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCardView.swift; sourceTree = "<group>"; };
 		F50000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D40000000000000000000001 /* TreeVoiceAssistantTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TreeVoiceAssistantTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F30000000000000000000001 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
@@ -222,6 +224,7 @@
 			children = (
 				F10000000000000000000001 /* TreeVoiceAssistantApp.swift */,
 				F10000000000000000000002 /* RootView.swift */,
+				F10000000000000000000016 /* UpdateCardView.swift */,
 				F10000000000000000000011 /* SidebarNavigation.swift */,
 			);
 			path = App;
@@ -433,6 +436,7 @@
 				E10000000000000000000007 /* SettingsViewModel.swift in Sources */,
 				E10000000000000000000008 /* AboutView.swift in Sources */,
 				E10000000000000000000015 /* ConsentView.swift in Sources */,
+				E10000000000000000000016 /* UpdateCardView.swift in Sources */,
 				E30000000000000000000001 /* AppError.swift in Sources */,
 				E30000000000000000000002 /* AppInfo.swift in Sources */,
 				E30000000000000000000003 /* AppPaths.swift in Sources */,

@@ -8,7 +8,7 @@ private let wallpaperCrossfadeSeconds: Double = 0.5
 /// 左サイドナビ＋右コンテンツ。
 /// 背景に設定画面で選んだ壁紙（不透明度・背景色付き）を表示し、選択言語を適用する。
 /// 更新ダイアログは常時表示のここで出す（メニュー操作時も前面に表示するため）。
-struct RootView: View {
+struct RootView: View { // swiftlint:disable:this type_body_length
     @State private var navigation: SidebarNavigation
     @State private var settings: SettingsViewModel
     @State private var updateCheck: UpdateCheckController
@@ -69,36 +69,12 @@ struct RootView: View {
                     }
                 }
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)
-                if updateCheck.updateAvailableInfo != nil {
-                    Divider()
-                    Button {
-                        updateCheck.checkForUpdate(language: settings.language)
-                    } label: {
-                        Label {
-                            Text(L10n.string("nav.updateAvailable", language: settings.language))
-                                .font(AppTheme.font(.body, scale: fontScale))
-                        } icon: {
-                            Image(systemName: "arrow.down.circle.fill")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.accentColor)
-                        )
-                        .foregroundStyle(.white)
-                        .onHover { hovering in
-                            if hovering {
-                                NSCursor.pointingHand.push()
-                            } else {
-                                NSCursor.pop()
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                }
+                UpdateCardView(
+                    controller: updateCheck,
+                    language: settings.language,
+                    fontScale: fontScale,
+                    availableTextColor: availableTextColor
+                )
             }
         } detail: {
             ZStack {
@@ -220,6 +196,13 @@ struct RootView: View {
 
     private var systemScheme: ColorScheme {
         SettingsViewModel.systemIsDark() ? .dark : .light
+    }
+
+    /// 更新ありカードのテキスト色。OSテーマカラー（半透明アクセントtint）の上で
+    /// ライト・ダークどちらのモードでも強調して見える色にする。
+    /// 自動モードは `appearanceScheme` で実効スキームに解決済み。
+    private var availableTextColor: Color {
+        appearanceScheme == .dark ? .white : Color(nsColor: .textColor)
     }
 
     private var fontScale: CGFloat {

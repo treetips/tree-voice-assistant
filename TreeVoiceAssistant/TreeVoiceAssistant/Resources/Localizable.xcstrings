@@ -491,6 +491,24 @@
         }
       }
     },
+    "nav.updateNone": {
+      "comment": "",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No update available"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップデートは有りません"
+          }
+        }
+      }
+    },
     "notify.failure": {
       "comment": "",
       "extractionState": "manual",
