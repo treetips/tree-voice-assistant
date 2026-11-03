@@ -1,11 +1,12 @@
 name: SwiftUI
 
-# `Build & Test` はブランチ保護ルールセットの必須ステータスチェックなので、
-# 全ブランチのpush（main）とすべてのPRで毎回実行する。
-# pathsで絞ると非該当のPRでチェックが報告されず、必須チェック待ちが
-# 解消されないままマージできなくなる（PR #17で発生）。
-# 絞らないもう一つの理由は、アプリに同梱するリポジトリ直下の `assets/` が
-# paths指定の対象外だった取りこぼしを防ぐこと。
+# Swift関連の変更を伴うときだけ macOS で `Build & Test` を実行する（ADR 023）。
+# Why not ワークフローの paths で絞らないか: paths で絞ると非該当の PR で
+# チェックが報告されず、必須ステータスチェック待ちが解消されないまま
+# マージできなくなる（PR #17 で発生）。job の if で止めた場合の Skipped は
+# 必須チェック（success / skipped / neutral）を満たすため、macOS ランナーを
+# 使わずに滞留を防げる。変更が無い PR で macOS のビルド・テストを走らせても
+# ランナーの容量制約でキュー待ちのままキャンセルされるだけで無駄なため。
 on:
   push:
     branches:
@@ -13,8 +14,40 @@ on:
   pull_request:
 
 jobs:
+  # 変更されたパスから `Build & Test` の要否を判定する。ubuntu のみで数秒で終わる。
+  changes:
+    name: Detect Swift changes
+    runs-on: ubuntu-latest
+    outputs:
+      swift: ${{ steps.detect.outputs.swift }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # アプリソース・Xcodeプロジェクト・バンドルリソース・Xcodeバージョン・
+      # CIワークフロー自体の変更を Swift 関連とみなす。
+      - name: Detect Swift related changes
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RANGE="${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+          else
+            RANGE="${{ github.event.before }}..${{ github.sha }}"
+          fi
+          echo "diff range: $RANGE"
+          if git diff --name-only "$RANGE" | grep -Eq '^(TreeVoiceAssistant/|assets/|\.xcode-version$|\.github/workflows/ci\.yml$)'; then
+            echo "swift=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "swift=false" >> "$GITHUB_OUTPUT"
+          fi
+
   verify:
     name: Build & Test
+    needs: changes
+    # Swift関連の変更が無い場合は実行せず Skipped を報告し、必須チェックを満たす。
+    if: needs.changes.outputs.swift == 'true'
     runs-on: macos-latest
 
     steps:

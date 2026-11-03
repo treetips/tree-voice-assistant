@@ -1,6 +1,6 @@
 # 必須ステータスチェックのBuild & Testを常に実行する
 
-- ステータス: Accepted
+- ステータス: 代替済み (Superseded)（ADR 023で置き換え）
 - 影響範囲: `.github/workflows/ci.yml`
 - 関連: ADR 019（Markdownのlint・フォーマットをrumdlで行いCIでチェックする）
 
@@ -39,3 +39,5 @@
 - すべてのPRで `Build & Test` が実行・報告され、変更ファイルに関わらず
   必須チェックが満たされる。ゾンビ状態のPRは発生しない。
 - main へのpushでも毎回実行されるため、マージ後の破損も検出できる。
+- 本決定はADR 023で置き換えられた（Swift関連の変更時のみ実行し、
+  非該当時はSkipped報告する方式に変更）。
