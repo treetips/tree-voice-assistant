@@ -19,10 +19,11 @@
 | 015 | 背景画像の切替を0.5秒のクロスフェードにする | Accepted | 画面・壁紙 |
 | 016 | 成功時・失敗時のサウンドのランダム再生を追加する | Accepted | 設定・サウンド |
 | 017 | サイドナビ下部の更新カードを更新の有無で表示し分ける | Accepted | 画面・更新 |
+| 018 | 手動更新確認の結果をサイドナビ下部の更新カードにも反映する | Accepted | 画面・更新 |
 
 - ステータス凡例
-    - 提案済み (Proposed)
-    - 承認済み (Accepted)
-    - 代替済み (Superseded)
-    - 非推奨 (Deprecated)
-    - 棄却 (Rejected)
+  - 提案済み (Proposed)
+  - 承認済み (Accepted)
+  - 代替済み (Superseded)
+  - 非推奨 (Deprecated)
+  - 棄却 (Rejected)
