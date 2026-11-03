@@ -14,11 +14,11 @@
 
 - クリックすると、 `設定画面` を表示する。
 
-### 区切り線
+### 区切り線（Settings の下）
 
 ### Services
 
-### 区切り線
+### 区切り線（Services の下）
 
 ### Hide Tree Voice Assistant
 
@@ -26,7 +26,7 @@
 
 ### Show All
 
-### 区切り線
+### 区切り線（Show All の下）
 
 ### Quit Tree Voice Assistant
 

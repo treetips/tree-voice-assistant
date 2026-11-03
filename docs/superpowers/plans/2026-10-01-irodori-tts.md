@@ -32,14 +32,15 @@
 ### Task 1: TTSモデル列挙とリクエスト拡張
 
 **Files:**
+
 - Modify: `TreeVoiceAssistant/TreeVoiceAssistant/Core/Models.swift:46-62`
 - Modify: `TreeVoiceAssistant/TreeVoiceAssistant/Core/EngineProtocols.swift:8-15`
 - Modify: `TreeVoiceAssistant/TreeVoiceAssistantTests/WhisperMappingTests.swift:26-31`
 
 **Interfaces:**
+
 - Consumes: なし（既存の`TTSModel`、`TTSRequest`を拡張する）。
 - Produces: `TTSModel.irodoriV41Small`、`TTSModel.irodoriV41SmallMF`、`TTSModel.irodoriHFCheckpoint: String?`、`TTSModel.isIrodori: Bool`、`TTSRequest.caption: String?`。Task 2・3が利用する。
-
 - [ ] **Step 1: Write the failing test**
 
 `TreeVoiceAssistant/TreeVoiceAssistantTests/WhisperMappingTests.swift`の`ttsModelIDs()`に次を追加する。
@@ -125,14 +126,15 @@ Expected: BUILD SUCCEEDED。
 ### Task 2: IrodoriTTSServiceの新設
 
 **Files:**
+
 - Create: `TreeVoiceAssistant/TreeVoiceAssistant/Services/IrodoriTTSService.swift`
 - Modify: `TreeVoiceAssistant/TreeVoiceAssistant/Services/AppPaths.swift:63-66`
 - Test: `TreeVoiceAssistant/TreeVoiceAssistantTests/IrodoriTTSServiceTests.swift`（新規）
 
 **Interfaces:**
+
 - Consumes: Task 1の`TTSRequest.caption`。
 - Produces: `IrodoriTTSService: SpeechSynthesizer`、`AppPaths.ttsIrodoriURL`、`IrodoriTTSService.generateArguments(request:projectDirectory:sourceDirectory:outputDirectory:)`。Task 3が利用する。
-
 - [ ] **Step 1: Write the failing test**
 
 `TreeVoiceAssistant/TreeVoiceAssistantTests/IrodoriTTSServiceTests.swift`を新規作成する。
@@ -368,14 +370,15 @@ Expected: BUILD SUCCEEDED。
 ### Task 3: ViewModelの分岐と実行条件・永続化
 
 **Files:**
+
 - Modify: `TreeVoiceAssistant/TreeVoiceAssistant/Services/SettingsStore.swift:3-20`
 - Modify: `TreeVoiceAssistant/TreeVoiceAssistant/Features/Convert/ConvertViewModel.swift`
 - Test: `TreeVoiceAssistant/TreeVoiceAssistantTests/ConvertValidationTests.swift`（追加）
 
 **Interfaces:**
+
 - Consumes: Task 1の`isIrodori`・`irodoriHFCheckpoint`、Task 2の`IrodoriTTSService`。
 - Produces: `ConvertViewModel.captionText`、`ConvertViewModel.isIrodoriSelected`。Task 4が利用する。
-
 - [ ] **Step 1: Write the failing test**
 
 `ConvertValidationTests.swift`に次を追加する。
@@ -560,13 +563,14 @@ Expected: PASS。
 ### Task 4: 変換画面のcaption欄
 
 **Files:**
+
 - Modify: `TreeVoiceAssistant/TreeVoiceAssistant/Features/Convert/ConvertView.swift:227-300`
 - Modify: `TreeVoiceAssistant/TreeVoiceAssistant/Resources/Localizable.xcstrings`（`v.label.caption`・`v.captionPlaceholder`の日英）
 
 **Interfaces:**
+
 - Consumes: Task 3の`captionText`・`isIrodoriSelected`。
 - Produces: 画面表示。プルダウン自体は既存`ForEach(TTSModel.allCases)`のため自動で4件になる。
-
 - [ ] **Step 1: caption欄を追加する**
 
 `TtsSection`のモデル選択`GridRow`の次に次を追加する。Irodori選択時のみ表示する。
@@ -593,9 +597,9 @@ Expected: BUILD SUCCEEDED。アプリを起動し、TTSプルダウンが4件、
 ### Task 5: ADRと最終検証
 
 **Files:**
+
 - Create: `docs/adr/010-irodori-tts.md`
 - Modify: `docs/adr/INDEX.md:9`（1行追加）
-
 - [ ] **Step 1: ADRを作成する**
 
 `docs/adr/010-irodori-tts.md`を作成する。次の内容にする。

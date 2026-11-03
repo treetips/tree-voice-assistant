@@ -12,7 +12,6 @@
   - `~/.config/tree-voice-assistant/sounds/success` 。ユーザーが自分で用意した `成功音声` のフォルダです。このフォルダはユーザーが任意に配置するので、フォルダ・ファイルが存在しない場合があります。
   - `~/.config/tree-voice-assistant/sounds/error` 。ユーザーが自分で用意した `失敗音声` のフォルダです。このフォルダはユーザーが任意に配置するので、フォルダ・ファイルが存在しない場合があります。
 
-
 ## 通知
 
 - [UserNotifications](https://developer.apple.com/documentation/usernotifications/)（`UNUserNotificationCenter`）を `NotificationService` 経由で使います。起動時に許可を求め、アプリ前面表示中もバナーを出します。
@@ -20,6 +19,12 @@
 ## 国際化
 
 - String Catalogs（`Resources/Localizable.xcstrings`、ja/en）を使います。SwiftUIの `.environment(\.locale)` が届かない箇所（メニュー・通知・ダイアログ文言）は `L10n.string(_:language:)` で設定言語に従わせます。
+
+## Linter・Formatter
+
+- MarkdownのLinter・Formatterは [rumdl](https://rumdl.dev/) を使う。設定はリポジトリ直下の `.rumdl.toml` で管理する。導入はHomebrew（`brew install rumdl`）。
+  - Markdownを修正した場合は `rumdl fmt` でフォーマットし、`rumdl check` でlintチェックして違反があれば修正する。
+  - GitHub Actions（`.github/workflows/markdown.yml`）でも `rumdl check` と `rumdl fmt --check` を実行し、違反があるとCIに失敗する。対象は `.opencode`（同梱スキル文書）を除くすべてのMarkdown。
 
 ## アプリケーション
 
