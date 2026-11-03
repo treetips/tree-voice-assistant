@@ -1,6 +1,7 @@
 # Markdownのlint・フォーマットをrumdlで行いCIでチェックする
 
 - ステータス: Accepted
+- 実行トリガーに関する決定は [ADR 024](024-markdown-ci-push-only.md) で変更した。
 - 影響範囲: `.rumdl.toml`、`.github/workflows/markdown.yml`、`.vscode`、`AGENTS.md`、`docs/design/system.md`
 - 関連: tree-image-optimizer ADR 0043（Markdownのlint・フォーマットをrumdlで行いCIでチェックする）
 
