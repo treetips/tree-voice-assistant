@@ -25,6 +25,7 @@
 | 021 | commit時にprekでrumdlのフォーマットとBetterleaksの漏洩チェックを行う | Accepted | 開発環境・git hooks |
 | 022 | setup.shで.vscode/extensions.jsonからVSCode拡張を導入する | Accepted | 開発環境 |
 | 023 | Swift関連の変更時のみBuild & Testを実行し、非該当時はスキップ報告する | Accepted | CI |
+| 024 | MarkdownのCIをpushに一本化して2重実行をなくす | Accepted | ドキュメント・CI |
 
 - ステータス凡例
   - 提案済み (Proposed)
