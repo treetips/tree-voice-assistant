@@ -1,20 +1,16 @@
 name: SwiftUI
 
+# `Build & Test` はブランチ保護ルールセットの必須ステータスチェックなので、
+# 全ブランチのpush（main）とすべてのPRで毎回実行する。
+# pathsで絞ると非該当のPRでチェックが報告されず、必須チェック待ちが
+# 解消されないままマージできなくなる（PR #17で発生）。
+# 絞らないもう一つの理由は、アプリに同梱するリポジトリ直下の `assets/` が
+# paths指定の対象外だった取りこぼしを防ぐこと。
 on:
   push:
     branches:
       - main
-    paths:
-      - 'TreeVoiceAssistant/**'
-      - '.xcode-version'
-      - '.github/workflows/ci.yml'
   pull_request:
-    branches:
-      - main
-    paths:
-      - 'TreeVoiceAssistant/**'
-      - '.xcode-version'
-      - '.github/workflows/ci.yml'
 
 jobs:
   verify:
