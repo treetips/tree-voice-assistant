@@ -61,6 +61,16 @@ struct UpdateLogicTests {
         #expect(UpdateCheckController.resolveCard(for: .failed("offline")) == .noUpdate)
     }
 
+    @Test("手動確認結果は確認失敗時を除きサイドナビの更新カード状態に解決する")
+    @MainActor
+    func resolveManualCard() {
+        let info = UpdateInfo(version: "0.1.0", build: 2, url: "https://example.com/a.zip", sha256: "x")
+        #expect(UpdateCheckController.resolveManualCard(for: .available(info)) == .available(info))
+        #expect(UpdateCheckController.resolveManualCard(for: .latest) == .noUpdate)
+        // 確認失敗時はnilを返し、カードは変更しない。
+        #expect(UpdateCheckController.resolveManualCard(for: .failed("offline")) == nil)
+    }
+
     @Test("更新なしカードの文言")
     func noUpdateCardText() {
         #expect(L10n.string("nav.updateNone", language: "ja") == "アップデートは有りません")

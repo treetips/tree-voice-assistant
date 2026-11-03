@@ -4,9 +4,9 @@
 
 ### ✏️ アップデートのチェック
 
-https://github.com/treetips/tree-voice-assistant/releases/latest/download/update-info.json
+<https://github.com/treetips/tree-voice-assistant/releases/latest/download/update-info.json>
 
-- 起動時にバックグラウンドで確認し（ダイアログなし・サイドナビ通知のみ反映）、About画面・メニューバー・サイドナビ通知から手動確認もできる。
+- 起動時にバックグラウンドで確認し（ダイアログなし・サイドナビ通知のみ反映）、About画面・メニューバー・サイドナビ通知から手動確認もできる。手動確認の結果はダイアログとサイドナビ下部の更新カードの双方に反映する（確認失敗時は更新カードを変更しない。ネットワーク失敗で「更新なし」と表示するのは誤解を招くため）。
 - GitHub Releasesの `update-info.json` を取得し、セマンティックバージョン→ビルド番号の順で比較する。GitHub側が新しい場合のみアップデートダイアログを表示する。
 - ダウンロード・SHA-256検証・展開は `UpdateService` が行い、`/Applications` への適用と再起動は `UpdateCheckController` が行う。リリース手順は `docs/design/release-flow.md` を参照。
 
