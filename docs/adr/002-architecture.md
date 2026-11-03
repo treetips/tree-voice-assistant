@@ -16,6 +16,7 @@ params=(
 )
 uv run mlx_whisper "${params[@]}" "${SOURCE_PATH}"
 ```
+
 ```shell
 params=(
   --lang_code "ja"

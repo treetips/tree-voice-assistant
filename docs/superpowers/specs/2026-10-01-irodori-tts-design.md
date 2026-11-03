@@ -52,7 +52,7 @@
 
 Irodori固定引数:
 
-```
+```text
 run --project <tools/tts-irodori> python <src>/infer.py
   --hf-checkpoint <選択中のIrodoriチェックポイント>
   --text <speechText>
