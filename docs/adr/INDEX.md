@@ -22,6 +22,8 @@
 | 018 | 手動更新確認の結果をサイドナビ下部の更新カードにも反映する | Accepted | 画面・更新 |
 | 019 | Markdownのlint・フォーマットをrumdlで行いCIでチェックする | Accepted | ドキュメント・CI |
 | 020 | 必須ステータスチェックのBuild & Testを常に実行する | Accepted | CI |
+| 021 | commit時にprekでrumdlのフォーマットとBetterleaksの漏洩チェックを行う | Accepted | 開発環境・git hooks |
+| 022 | setup.shで.vscode/extensions.jsonからVSCode拡張を導入する | Accepted | 開発環境 |
 
 - ステータス凡例
   - 提案済み (Proposed)
