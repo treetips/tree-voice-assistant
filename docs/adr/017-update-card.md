@@ -1,5 +1,7 @@
 # サイドナビ下部の更新カードを更新の有無で表示し分ける
 
+- ステータス: Superseded
+- 置き換え: ADR 025（更新カードをヘッダー右端へ移し、Rex風フローへ変更）
 - ステータス: Accepted
 - 影響範囲: `Core/UpdateCheckController.swift`、`Core/GlassCard.swift`、`App/RootView.swift`、`Resources/Localizable.xcstrings`
 - 関連: tree-image-optimizer ADR 0030（サイドナビ下部の更新カードを更新の有無で表示し分ける）

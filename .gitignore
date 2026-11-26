@@ -51,6 +51,8 @@ pubspec_overrides.yaml
 
 # リリース生成物
 /dist/
+/dist-release/
+/dist-tools/
 
 # Xcode user data
 **/xcuserdata/

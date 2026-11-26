@@ -8,9 +8,14 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
     static let repoURL = "https://github.com/Aratako/Irodori-TTS"
     static let repoBranch = "main"
 
-    /// TTS実行環境の `pyproject.toml`。macOSはPyPIのtorch（MPS/CPU）を使う。
+    /// TTS実行環境の `pyproject.toml`。配布元はアプリ内リソースに一本化する。
     static func pyprojectContent() -> String {
-        """
+        if let url = Bundle.main.url(forResource: "tts-irodori-pyproject", withExtension: "toml"),
+           let content = try? String(contentsOf: url, encoding: .utf8) {
+            return content
+        }
+        // テストホストへリソースが含まれない場合のフォールバック。
+        return """
         [project]
         name = "tree-voice-tts-irodori"
         version = "0.1.0"
@@ -167,9 +172,12 @@ final class IrodoriTTSService: SpeechSynthesizer, @unchecked Sendable {
             }
         }
         let pyproject = toolsDir.appendingPathComponent("pyproject.toml", isDirectory: false)
-        let expected = Self.pyprojectContent()
-        if (try? String(contentsOf: pyproject, encoding: .utf8)) != expected {
-            try expected.write(to: pyproject, atomically: true, encoding: .utf8)
+        let fileManager = FileManager.default
+        let installedRecord = ToolsInfoStore(paths: paths).installedFileURL
+        // tools Releaseで固定したリビジョンを、clone/syncの前に上書きしない。
+        if !fileManager.fileExists(atPath: installedRecord.path)
+            || !fileManager.fileExists(atPath: pyproject.path) {
+            try Self.pyprojectContent().write(to: pyproject, atomically: true, encoding: .utf8)
         }
         do {
             _ = try await runLogged(command, uvPath, ["sync", "--extra", "cpu"], toolsDir.path, lines: &lines)

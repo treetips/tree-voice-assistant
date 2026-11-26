@@ -1,0 +1,25 @@
+[project]
+name = "tree-voice-tts-irodori"
+version = "0.1.0"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    "irodori-tts",
+]
+
+[tool.uv.sources]
+irodori-tts = { git = "https://github.com/Aratako/Irodori-TTS", rev = "main" }
+torch = { index = "pt-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }
+torchaudio = { index = "pt-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }
+
+[[tool.uv.index]]
+name = "pt-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[project.optional-dependencies]
+cpu = [
+    "torch>=2.10.0,<2.11.0",
+    "torchao>=0.16.0,<0.17.0",
+    "torchaudio>=2.10.0,<2.11.0",
+    "torchcodec>=0.10.0,<0.11.0",
+]

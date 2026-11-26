@@ -1,0 +1,79 @@
+name: Release Tools
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '配布先のリリースタグ（アプリ本体とは独立）'
+        required: true
+        default: 'tools-latest'
+      force:
+        description: '上流の更新がなくても配布物を再作成する'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tools-release-${{ github.workflow }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  REPO_URL: https://github.com/treetips/tree-voice-assistant
+
+jobs:
+  publish:
+    name: Build & Publish Tools
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Read uv version
+        id: uv
+        run: |
+          VERSION="$(grep -E 'static let uvVersion = "' TreeVoiceAssistant/TreeVoiceAssistant/Services/UVInstaller.swift \
+            | sed -E 's/.*"([^"]+)".*/\1/' | head -n1)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ steps.uv.outputs.version }}
+          python-version: '3.11'
+
+      - name: Build tool assets
+        env:
+          TAG: ${{ inputs.tag }}
+          REPO_URL: ${{ env.REPO_URL }}
+        run: |
+          set -euo pipefail
+          chmod +x tools/build-tools-release.sh
+          tools/build-tools-release.sh dist-tools
+
+      - name: Check built tools against release
+        id: preflight
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+          FORCE: ${{ inputs.force }}
+          CANDIDATE_DIR: dist-tools
+        run: |
+          set -euo pipefail
+          chmod +x tools/preflight-tools-release.sh
+          tools/preflight-tools-release.sh
+
+      - name: Publish GitHub Release
+        if: steps.preflight.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          chmod +x tools/publish-tools-release.sh
+          tools/publish-tools-release.sh dist-tools

@@ -14,6 +14,9 @@
 - バージョンの正本は `TreeVoiceAssistant/TreeVoiceAssistant/Info.plist` の
   `CFBundleShortVersionString` / `CFBundleVersion` とし、ローカルでの手動更新は不要。
   Releaseワークフローが最新リリースタグ＋bump指定から算出して書き込む。
-- uv 本体は実行時に取得するため（`UVInstaller`）、配布ZIPに同梱しない。
-  tree-image-optimizer の `tools/`（Git LFS）相当の仕組みは持たない。
+- `uv`・Irodori-TTSソース・Python仮想環境はアプリZIPに同梱せず、
+  `tools-latest` の別リリースで配布する。TTSプロジェクト定義は動的調達のフォールバック用に
+  アプリ内リソースとして保持する。音声モデルは初回利用時に取得する。
+- 更新操作のヘッダー移動、Rex風のDownload・進捗・手動再起動、ツールの個別更新は
+  ADR 025を正とし、本ADRの該当部分を置き換える。
 - 詳細な手順は `docs/design/release-flow.md` を参照。

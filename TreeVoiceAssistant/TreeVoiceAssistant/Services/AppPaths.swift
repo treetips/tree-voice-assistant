@@ -50,6 +50,11 @@ struct AppPaths: Sendable {
         projectDirectoryURL.appendingPathComponent("logs", isDirectory: true)
     }
 
+    /// 再起動まで新しいアプリを安全に保持する `<基準>/updates`。
+    var updatesDirectoryURL: URL {
+        projectDirectoryURL.appendingPathComponent("updates", isDirectory: true)
+    }
+
     /// `<基準>/tools`。内蔵ツール（uv・TTS環境）の配置先。
     var toolsURL: URL {
         projectDirectoryURL.appendingPathComponent("tools", isDirectory: true)

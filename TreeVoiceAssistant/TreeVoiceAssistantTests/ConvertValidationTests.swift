@@ -179,10 +179,36 @@ struct ConvertValidationTests {
         viewModel.runSynthesis()
         #expect(jobStore.isSynthesizing == true)
         viewModel.cancelSynthesis()
-        #expect(jobStore.isSynthesizing == false)
+        // 子プロセスやTTSタスクの終了待ち中もtools置換を禁止する。
+        #expect(jobStore.isSynthesizing == true)
+        #expect(jobStore.isCancellingSynthesis == true)
+        #expect(jobStore.isRunning == true)
         #expect(jobStore.lastRunSucceeded == nil)
-        try await Task.sleep(for: .milliseconds(50))
-        #expect(jobStore.isSynthesizing == false)
+        while jobStore.isSynthesizing {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(jobStore.isCancellingSynthesis == false)
+        #expect(jobStore.lastRunSucceeded == nil)
+    }
+
+    @Test("文字起こしのキャンセルも終了完了まで実行中を保つ")
+    @MainActor
+    func transcriptionCancelWaitsForCompletion() async throws {
+        let jobStore = ConvertJobStore()
+        let viewModel = ConvertViewModel(
+            jobStore: jobStore, store: try makeStore(),
+            transcription: HangingTranscriptionEngine(), synthesizer: FakeSynthesizer())
+        viewModel.acceptAudioURLs([try makeAudio()])
+        viewModel.runTranscription()
+        #expect(jobStore.isTranscribing == true)
+        viewModel.cancelTranscription()
+        #expect(jobStore.isTranscribing == true)
+        #expect(jobStore.isCancellingTranscribing == true)
+        #expect(jobStore.isRunning == true)
+        while jobStore.isTranscribing {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(jobStore.isCancellingTranscribing == false)
         #expect(jobStore.lastRunSucceeded == nil)
     }
 

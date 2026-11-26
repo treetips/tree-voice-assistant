@@ -2,6 +2,8 @@ import AppKit
 import Combine
 import SwiftUI
 
+// swiftlint:disable file_length
+
 /// 背景画像切替のクロスフェード時間（秒）。
 private let wallpaperCrossfadeSeconds: Double = 0.5
 
@@ -12,6 +14,7 @@ struct RootView: View { // swiftlint:disable:this type_body_length
     @State private var navigation: SidebarNavigation
     @State private var settings: SettingsViewModel
     @State private var updateCheck: UpdateCheckController
+    @State private var toolsUpdate: ToolsUpdateController
     @State private var convertJobStore: ConvertJobStore
     // クロスフェード中に前面の下へ置いておく直前の壁紙。フェード完了後に解放する。
     @State private var outgoingWallpaper: OutgoingWallpaper?
@@ -26,11 +29,13 @@ struct RootView: View { // swiftlint:disable:this type_body_length
         navigation: SidebarNavigation,
         settings: SettingsViewModel,
         updateCheck: UpdateCheckController,
+        toolsUpdate: ToolsUpdateController,
         convertJobStore: ConvertJobStore
     ) {
         _navigation = State(initialValue: navigation)
         _settings = State(initialValue: settings)
         _updateCheck = State(initialValue: updateCheck)
+        _toolsUpdate = State(initialValue: toolsUpdate)
         _convertJobStore = State(initialValue: convertJobStore)
     }
 
@@ -69,12 +74,6 @@ struct RootView: View { // swiftlint:disable:this type_body_length
                     }
                 }
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)
-                UpdateCardView(
-                    controller: updateCheck,
-                    language: settings.language,
-                    fontScale: fontScale,
-                    availableTextColor: availableTextColor
-                )
             }
         } detail: {
             ZStack {
@@ -82,11 +81,26 @@ struct RootView: View { // swiftlint:disable:this type_body_length
                 backgroundImage
                 switch navigation.selection {
                 case .convert:
-                    ConvertView(jobStore: convertJobStore)
+                    ConvertView(
+                        jobStore: convertJobStore,
+                        toolsReady: !toolsUpdate.isInstalling && !toolsUpdate.isChecking
+                    )
                 case .settings:
                     SettingsView(viewModel: settings)
                 case .about:
                     AboutView(controller: updateCheck)
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    UpdateCardsToolbar(
+                        updateCheck: updateCheck,
+                        toolsUpdate: toolsUpdate,
+                        language: settings.language,
+                        fontScale: fontScale,
+                        colorScheme: appearanceScheme,
+                        toolsInstallEnabled: !convertJobStore.isRunning
+                    )
                 }
             }
         }
@@ -95,10 +109,16 @@ struct RootView: View { // swiftlint:disable:this type_body_length
         .environment(\.sizeCategory, AppTheme.sizeCategory(for: settings.fontSize))
         .environment(\.appFontScale, AppTheme.fontScale(for: settings.fontSize))
         .onAppear {
-            updateCheck.refreshAvailability()
-            if !agreementStore.isAgreed {
+            syncConversionRunning()
+            if agreementStore.isAgreed {
+                updateCheck.refreshAvailability()
+                toolsUpdate.refreshAvailability()
+            } else {
                 showUsageConsent = true
             }
+        }
+        .onChange(of: convertJobStore.isRunning) {
+            syncConversionRunning()
         }
         .sheet(isPresented: $showUsageConsent) {
             ConsentView(
@@ -107,6 +127,8 @@ struct RootView: View { // swiftlint:disable:this type_body_length
                 onAgree: {
                     try? agreementStore.agree()
                     showUsageConsent = false
+                    updateCheck.refreshAvailability()
+                    toolsUpdate.refreshAvailability()
                 },
                 onClose: {}
             )
@@ -133,36 +155,6 @@ struct RootView: View { // swiftlint:disable:this type_body_length
                 .font(AppTheme.font(.body, scale: fontScale))
         }
         .alert(
-            Text(L10n.string("a.confirmInstall", language: settings.language))
-                .font(AppTheme.font(.headline, scale: fontScale)),
-            isPresented: Binding(
-                get: { updateCheck.availableInfo != nil },
-                set: { if !$0 { updateCheck.availableInfo = nil } }
-            )
-        ) {
-            Button(role: .cancel) {
-            } label: {
-                Text(L10n.string("a.cancel", language: settings.language))
-                    .font(AppTheme.font(.body, scale: fontScale))
-            }
-            if let info = updateCheck.availableInfo {
-                Button {
-                    updateCheck.install(info, language: settings.language)
-                } label: {
-                    Text(L10n.string("a.install", language: settings.language))
-                        .font(AppTheme.font(.body, scale: fontScale))
-                }
-            }
-        } message: {
-            if let info = updateCheck.availableInfo {
-                Text(String(
-                    format: L10n.string("a.confirmInstallMsg", language: lang),
-                    info.version
-                ))
-                .font(AppTheme.font(.body, scale: fontScale))
-            }
-        }
-        .alert(
             Text(L10n.string("a.checkFailed", language: settings.language))
                 .font(AppTheme.font(.headline, scale: fontScale)),
             isPresented: Binding(
@@ -179,10 +171,40 @@ struct RootView: View { // swiftlint:disable:this type_body_length
             Text(updateCheck.errorDialog ?? "")
                 .font(AppTheme.font(.body, scale: fontScale))
         }
-    }
-
-    private var lang: String {
-        settings.language
+        .alert(
+            Text(L10n.string("a.restartFailed", language: settings.language))
+                .font(AppTheme.font(.headline, scale: fontScale)),
+            isPresented: Binding(
+                get: { updateCheck.restartErrorDialog != nil },
+                set: { if !$0 { updateCheck.restartErrorDialog = nil } }
+            )
+        ) {
+            Button {
+            } label: {
+                Text(L10n.string("a.ok", language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            }
+        } message: {
+            Text(updateCheck.restartErrorDialog ?? "")
+                .font(AppTheme.font(.body, scale: fontScale))
+        }
+        .alert(
+            Text(L10n.string("nav.installFailed", language: settings.language))
+                .font(AppTheme.font(.headline, scale: fontScale)),
+            isPresented: Binding(
+                get: { toolsUpdate.errorDialog != nil },
+                set: { if !$0 { toolsUpdate.errorDialog = nil } }
+            )
+        ) {
+            Button {
+            } label: {
+                Text(L10n.string("a.ok", language: settings.language))
+                    .font(AppTheme.font(.body, scale: fontScale))
+            }
+        } message: {
+            Text(toolsUpdate.errorDialog ?? "")
+                .font(AppTheme.font(.body, scale: fontScale))
+        }
     }
 
     /// 設定の外観モードを配色に反映する。自動はシステム設定を読み取って解決する。
@@ -198,15 +220,15 @@ struct RootView: View { // swiftlint:disable:this type_body_length
         SettingsViewModel.systemIsDark() ? .dark : .light
     }
 
-    /// 更新ありカードのテキスト色。OSテーマカラー（半透明アクセントtint）の上で
-    /// ライト・ダークどちらのモードでも強調して見える色にする。
-    /// 自動モードは `appearanceScheme` で実効スキームに解決済み。
-    private var availableTextColor: Color {
-        appearanceScheme == .dark ? .white : Color(nsColor: .textColor)
-    }
-
     private var fontScale: CGFloat {
         AppTheme.fontScale(for: settings.fontSize)
+    }
+
+    /// キャンセル完了待ちを含め、変換タスクが生きている間は配置・再起動を禁止する。
+    private func syncConversionRunning() {
+        let isRunning = convertJobStore.isRunning
+        updateCheck.isConversionRunning = isRunning
+        toolsUpdate.isConversionRunning = isRunning
     }
 
     /// 実行中メニューの右端に表示する汎用ラベル。
@@ -292,7 +314,7 @@ struct RootView: View { // swiftlint:disable:this type_body_length
             let aspect = image.size.width / max(image.size.height, 1)
             Image(nsImage: image)
                 .resizable()
-                .aspectRatio(contentMode: .fill)
+                .scaledToFill()
                 .frame(
                     width: geometry.size.height * aspect,
                     height: geometry.size.height

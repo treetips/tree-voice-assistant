@@ -7,9 +7,14 @@ final class MLXAudioTTSService: SpeechSynthesizer, @unchecked Sendable {
     /// 固定する `mlx-audio` の版。ホストの `git` を不要にするためPyPI版を使う。
     static let mlxAudioVersion = "0.5.1"
 
-    /// TTS実行環境の `pyproject.toml`。シェル版の移植に相当する。
+    /// TTS実行環境の `pyproject.toml`。配布元はアプリ内リソースに一本化する。
     static func pyprojectContent() -> String {
-        """
+        if let url = Bundle.main.url(forResource: "tts-pyproject", withExtension: "toml"),
+           let content = try? String(contentsOf: url, encoding: .utf8) {
+            return content
+        }
+        // テストホストへリソースが含まれない場合のフォールバック。
+        return """
         [project]
         name = "tree-voice-tts"
         version = "0.1.0"
@@ -136,9 +141,12 @@ final class MLXAudioTTSService: SpeechSynthesizer, @unchecked Sendable {
         let ttsDir = paths.ttsToolsURL
         try FileManager.default.createDirectory(at: ttsDir, withIntermediateDirectories: true)
         let pyproject = ttsDir.appendingPathComponent("pyproject.toml", isDirectory: false)
-        let expected = Self.pyprojectContent()
-        if (try? String(contentsOf: pyproject, encoding: .utf8)) != expected {
-            try expected.write(to: pyproject, atomically: true, encoding: .utf8)
+        let fileManager = FileManager.default
+        let installedRecord = ToolsInfoStore(paths: paths).installedFileURL
+        // tools Releaseで配置したピン留めを、起動時の動的調達で上書きしない。
+        if !fileManager.fileExists(atPath: installedRecord.path)
+            || !fileManager.fileExists(atPath: pyproject.path) {
+            try Self.pyprojectContent().write(to: pyproject, atomically: true, encoding: .utf8)
         }
         do {
             _ = try await runLogged(command, uvPath, ["sync"], ttsDir.path, lines: &lines)
@@ -153,7 +161,7 @@ final class MLXAudioTTSService: SpeechSynthesizer, @unchecked Sendable {
     /// 生成物フォルダで最新のwavを探す。
     static func newestWav(in directory: URL) -> URL? {
         guard let enumerator = FileManager.default.enumerator(
-            at: directory, includingPropertiesForKeys: [.creationDateKey, .isRegularFileKey])
+                at: directory, includingPropertiesForKeys: [.creationDateKey, .isRegularFileKey])
         else { return nil }
         var best: (url: URL, date: Date)?
         for case let url as URL in enumerator {

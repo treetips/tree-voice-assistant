@@ -18,14 +18,15 @@
 | 014 | 設定画面に背景画像のシャッフル機能を追加する | Accepted | 設定・壁紙 |
 | 015 | 背景画像の切替を0.5秒のクロスフェードにする | Accepted | 画面・壁紙 |
 | 016 | 成功時・失敗時のサウンドのランダム再生を追加する | Accepted | 設定・サウンド |
-| 017 | サイドナビ下部の更新カードを更新の有無で表示し分ける | Accepted | 画面・更新 |
-| 018 | 手動更新確認の結果をサイドナビ下部の更新カードにも反映する | Accepted | 画面・更新 |
+| 017 | サイドナビ下部の更新カードを更新の有無で表示し分ける | Superseded | 画面・更新 |
+| 018 | 手動更新確認の結果をサイドナビ下部の更新カードにも反映する | Superseded | 画面・更新 |
 | 019 | Markdownのlint・フォーマットをrumdlで行いCIでチェックする | Accepted | ドキュメント・CI |
 | 020 | 必須ステータスチェックのBuild & Testを常に実行する | Superseded | CI |
 | 021 | commit時にprekでrumdlのフォーマットとBetterleaksの漏洩チェックを行う | Accepted | 開発環境・git hooks |
 | 022 | setup.shで.vscode/extensions.jsonからVSCode拡張を導入する | Accepted | 開発環境 |
 | 023 | Swift関連の変更時のみBuild & Testを実行し、非該当時はスキップ報告する | Accepted | CI |
 | 024 | MarkdownのCIをpushに一本化して2重実行をなくす | Accepted | ドキュメント・CI |
+| 025 | 更新操作をヘッダーへ移し、アプリとツールを別リリースで更新する | Accepted | 画面・更新・配布 |
 
 - ステータス凡例
   - 提案済み (Proposed)

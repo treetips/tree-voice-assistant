@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 env:
   REPO_URL: https://github.com/treetips/tree-voice-assistant
 
@@ -90,9 +94,11 @@ jobs:
           echo "Build number:     $NEW_BUILD"
           echo "Tag name:         $TAG_NAME"
 
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "build_number=$NEW_BUILD" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$NEW_VERSION"
+            echo "build_number=$NEW_BUILD"
+            echo "tag=$TAG_NAME"
+          } >> "$GITHUB_OUTPUT"
 
       # ------------------------------------------------------------
       # Check existing tag
@@ -108,6 +114,54 @@ jobs:
             exit 1
           fi
 
+      # tools配布が無いままアプリを公開すると、新規クライアントがtoolsを準備できない。
+      - name: Verify tools release exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST="$RUNNER_TEMP/tools-info.json"
+          URLS="$RUNNER_TEMP/tools-urls.txt"
+          curl -fsSL --retry 3 --connect-timeout 10 \
+            "$REPO_URL/releases/download/tools-latest/tools-info.json" -o "$MANIFEST"
+          python3 - "$MANIFEST" "$REPO_URL" "$URLS" <<'PY'
+          import json
+          import pathlib
+          import re
+          import sys
+
+          manifest_path, repo_url, urls_path = sys.argv[1:]
+          try:
+              data = json.loads(pathlib.Path(manifest_path).read_text(encoding="utf-8"))
+          except (OSError, UnicodeError, json.JSONDecodeError) as error:
+              raise SystemExit(f"tools-info.json を読み込めません: {error}")
+          if data.get("schemaVersion") != 1 or not isinstance(data.get("tools"), list):
+              raise SystemExit("tools-info.json の形式が不正です")
+          expected = {"uv", "tts", "tts-irodori"}
+          names = [entry.get("name") for entry in data["tools"] if isinstance(entry, dict)]
+          if len(names) != len(set(names)) or set(names) != expected:
+              raise SystemExit("tools-info.json のツール一覧が不正です")
+          urls = []
+          for entry in data["tools"]:
+              url = entry.get("url")
+              checksum = entry.get("sha256")
+              if not isinstance(url, str) or not url.startswith(
+                  f"{repo_url}/releases/download/tools-latest/"
+              ):
+                  raise SystemExit(f"{entry['name']} のURLが不正です")
+              if not isinstance(checksum, str) or re.fullmatch(r"[0-9a-fA-F]{64}", checksum) is None:
+                  raise SystemExit(f"{entry['name']} のSHA-256が不正です")
+              if entry.get("required") is not True:
+                  raise SystemExit(f"{entry['name']} が必須ツールではありません")
+              urls.append(url)
+          pathlib.Path(urls_path).write_text("\n".join(urls) + "\n", encoding="utf-8")
+          PY
+          while IFS= read -r url; do
+            if ! curl -fsSL --head --retry 3 --connect-timeout 10 -o /dev/null "$url"; then
+              echo "::error::tools配布資産を取得できません: $url"
+              exit 1
+            fi
+          done < "$URLS"
+
       # ------------------------------------------------------------
       # Select Xcode version
       # `.xcode-version` に固定したXcodeを選択する（CIと同一）。
@@ -118,14 +172,14 @@ jobs:
         run: |
           VERSION="$(cat .xcode-version)"
           echo "Required Xcode version: $VERSION"
-          ls -d /Applications/Xcode*.app
+          find /Applications -maxdepth 1 -name 'Xcode*.app' -print
           PINNED="/Applications/Xcode_${VERSION}.app"
           if [[ -d "$PINNED" ]]; then
             echo "Using pinned Xcode: $PINNED"
             sudo xcode-select -s "$PINNED/Contents/Developer"
           else
             echo "::warning::Xcode ${VERSION} is not installed; falling back to the newest available Xcode."
-            LATEST="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n1 || true)"
+            LATEST="$(find /Applications -maxdepth 1 -name 'Xcode_*.app' -print | sort -V | tail -n1 || true)"
             if [[ -z "$LATEST" ]]; then
               LATEST="/Applications/Xcode.app"
             fi
@@ -179,14 +233,15 @@ jobs:
       # ------------------------------------------------------------
       # Package release assets
       # 自前アップデート（UpdateService）が読むのは .app の zip と
-      # update-info.json のみ。uv 本体は実行時に取得するため、
-      # 成果物に同梱しない。
+      # update-info.json のみ。tools は別の tools-latest Release で配布する。
       # ------------------------------------------------------------
       - name: Package release assets
         id: package
         shell: bash
         run: |
           set -euo pipefail
+          # AppleDouble（._*）がtoolsやアプリ内へ混入しないようにする。
+          export COPYFILE_DISABLE=1
           VERSION="${{ steps.version.outputs.version }}"
           BUILD="${{ steps.version.outputs.build_number }}"
 
@@ -220,11 +275,13 @@ jobs:
           echo "Created: dist-release/update-info.json"
           cat dist-release/update-info.json
 
-          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
-          echo "zip_path=dist-release/$ZIP_NAME" >> "$GITHUB_OUTPUT"
-          echo "checksum_path=dist-release/SHA256SUMS.txt" >> "$GITHUB_OUTPUT"
-          echo "update_info_path=dist-release/update-info.json" >> "$GITHUB_OUTPUT"
-          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          {
+            echo "zip_name=$ZIP_NAME"
+            echo "zip_path=dist-release/$ZIP_NAME"
+            echo "checksum_path=dist-release/SHA256SUMS.txt"
+            echo "update_info_path=dist-release/update-info.json"
+            echo "sha256=$SHA256"
+          } >> "$GITHUB_OUTPUT"
 
       # ------------------------------------------------------------
       # Create and push Git tag
