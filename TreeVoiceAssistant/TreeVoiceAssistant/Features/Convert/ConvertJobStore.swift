@@ -8,6 +8,8 @@ final class ConvertJobStore {
     var isTranscribing = false
     var isSynthesizing = false
     var isPlaying = false
+    var isCancellingTranscribing = false
+    var isCancellingSynthesis = false
     /// 実行段階。ボタンの状態表示に使う。
     var transcriptionStage: EngineStage = .idle
     var synthesisStage: EngineStage = .idle

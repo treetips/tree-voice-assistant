@@ -1,0 +1,7 @@
+[project]
+name = "tree-voice-tts"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "mlx-audio==0.5.1",
+]

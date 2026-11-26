@@ -1,5 +1,7 @@
 # 手動更新確認の結果をサイドナビ下部の更新カードにも反映する
 
+- ステータス: Superseded
+- 置き換え: ADR 025（反映先をヘッダー右端の統合更新カードへ変更）
 - ステータス: Accepted
 - 影響範囲: `Core/UpdateCheckController.swift`
 - 関連: tree-image-optimizer ADR 0042（手動更新確認の結果をサイドナビ下部の更新カードにも反映する）

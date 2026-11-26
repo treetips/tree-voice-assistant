@@ -10,6 +10,7 @@ enum AppError: LocalizedError, Equatable {
     case verificationFailed(reason: String)
     case gitMissing
     case synthesisFailed(reason: String, logPath: String)
+    case updateFailed(reason: String)
     case cancelled
 
     var errorDescription: String? {
@@ -30,6 +31,8 @@ enum AppError: LocalizedError, Equatable {
             return "gitが見つかりません: Irodori-TTSの取得にgitが必要です"
         case .synthesisFailed(let reason, let logPath):
             return "合成に失敗しました: \(reason)\nログ: \(logPath)"
+        case .updateFailed(let reason):
+            return "アップデートに失敗しました: \(reason)"
         case .cancelled:
             return "キャンセルされました"
         }

@@ -5,6 +5,7 @@ import SwiftUI
 @main
 struct TreeVoiceAssistantApp: App {
     @State private var updateCheck = UpdateCheckController()
+    @State private var toolsUpdate = ToolsUpdateController()
     @State private var settings = SettingsViewModel()
     @State private var navigation = SidebarNavigation()
     @State private var convertJobStore = ConvertJobStore()
@@ -26,7 +27,7 @@ struct TreeVoiceAssistantApp: App {
         WindowGroup {
             RootView(
                 navigation: navigation, settings: settings, updateCheck: updateCheck,
-                convertJobStore: convertJobStore
+                toolsUpdate: toolsUpdate, convertJobStore: convertJobStore
             )
             .frame(minWidth: 800, minHeight: 600)
         }
@@ -36,7 +37,7 @@ struct TreeVoiceAssistantApp: App {
                 Button(L10n.string("menu.checkForUpdates", language: settings.language)) {
                     updateCheck.checkForUpdate(language: settings.language)
                 }
-                .disabled(updateCheck.isChecking)
+                .disabled(!updateCheck.canCheckForUpdates)
                 Button(L10n.string("menu.settings", language: settings.language)) {
                     navigation.selection = .settings
                 }

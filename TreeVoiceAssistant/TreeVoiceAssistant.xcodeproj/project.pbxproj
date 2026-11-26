@@ -20,7 +20,13 @@
 		E10000000000000000000008 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000008 /* AboutView.swift */; };
 		E10000000000000000000009 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* Localizable.xcstrings */; };
 		E10000000000000000000015 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000015 /* ConsentView.swift */; };
-		E10000000000000000000016 /* UpdateCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* UpdateCardView.swift */; };
+		E60000000000000000000001 /* UpdateCardsToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000001 /* UpdateCardsToolbar.swift */; };
+		E60000000000000000000002 /* UpdateToolbarState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000002 /* UpdateToolbarState.swift */; };
+		E60000000000000000000003 /* ToolsInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000003 /* ToolsInfo.swift */; };
+		E60000000000000000000004 /* ToolsUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000004 /* ToolsUpdateController.swift */; };
+		E60000000000000000000005 /* ToolsUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000005 /* ToolsUpdateService.swift */; };
+		E60000000000000000000006 /* tts-pyproject.toml in Resources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000006 /* tts-pyproject.toml */; };
+		E60000000000000000000007 /* tts-irodori-pyproject.toml in Resources */ = {isa = PBXBuildFile; fileRef = F60000000000000000000007 /* tts-irodori-pyproject.toml */; };
 		E30000000000000000000001 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* AppError.swift */; };
 		E30000000000000000000015 /* GlassCTAButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000015 /* GlassCTAButton.swift */; };
 		E30000000000000000000027 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000027 /* GlassCard.swift */; };
@@ -80,7 +86,13 @@
 		F10000000000000000000008 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		F10000000000000000000009 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F10000000000000000000015 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
-		F10000000000000000000016 /* UpdateCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCardView.swift; sourceTree = "<group>"; };
+		F60000000000000000000001 /* UpdateCardsToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCardsToolbar.swift; sourceTree = "<group>"; };
+		F60000000000000000000002 /* UpdateToolbarState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateToolbarState.swift; sourceTree = "<group>"; };
+		F60000000000000000000003 /* ToolsInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsInfo.swift; sourceTree = "<group>"; };
+		F60000000000000000000004 /* ToolsUpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsUpdateController.swift; sourceTree = "<group>"; };
+		F60000000000000000000005 /* ToolsUpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsUpdateService.swift; sourceTree = "<group>"; };
+		F60000000000000000000006 /* tts-pyproject.toml */ = {isa = PBXFileReference; lastKnownFileType = text; path = "tts-pyproject.toml"; sourceTree = "<group>"; };
+		F60000000000000000000007 /* tts-irodori-pyproject.toml */ = {isa = PBXFileReference; lastKnownFileType = text; path = "tts-irodori-pyproject.toml"; sourceTree = "<group>"; };
 		F50000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D40000000000000000000001 /* TreeVoiceAssistantTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TreeVoiceAssistantTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F30000000000000000000001 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
@@ -205,6 +217,7 @@
 				F30000000000000000000012 /* WallpaperService.swift */,
 				F30000000000000000000013 /* NotificationService.swift */,
 				F30000000000000000000014 /* UpdateService.swift */,
+				F60000000000000000000005 /* ToolsUpdateService.swift */,
 				F30000000000000000000022 /* ProcessRunner.swift */,
 				F30000000000000000000023 /* TranscriptionService.swift */,
 				F30000000000000000000031 /* MLXAudioTTSService.swift */,
@@ -224,7 +237,6 @@
 			children = (
 				F10000000000000000000001 /* TreeVoiceAssistantApp.swift */,
 				F10000000000000000000002 /* RootView.swift */,
-				F10000000000000000000016 /* UpdateCardView.swift */,
 				F10000000000000000000011 /* SidebarNavigation.swift */,
 			);
 			path = App;
@@ -239,6 +251,8 @@
 				F30000000000000000000015 /* GlassCTAButton.swift */,
 				F30000000000000000000027 /* GlassCard.swift */,
 				F30000000000000000000016 /* UpdateCheckController.swift */,
+				F60000000000000000000003 /* ToolsInfo.swift */,
+				F60000000000000000000004 /* ToolsUpdateController.swift */,
 				F30000000000000000000017 /* L10n.swift */,
 				F30000000000000000000018 /* AppTheme.swift */,
 				F30000000000000000000019 /* HelpPopover.swift */,
@@ -254,9 +268,19 @@
 				A10000000000000000000008 /* Convert */,
 				A10000000000000000000009 /* Settings */,
 				A1000000000000000000000A /* About */,
+				A60000000000000000000001 /* Updates */,
 				A1000000000000000000000C /* Consent */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		A60000000000000000000001 /* Updates */ = {
+			isa = PBXGroup;
+			children = (
+				F60000000000000000000001 /* UpdateCardsToolbar.swift */,
+				F60000000000000000000002 /* UpdateToolbarState.swift */,
+			);
+			path = Updates;
 			sourceTree = "<group>";
 		};
 		A1000000000000000000000C /* Consent */ = {
@@ -299,6 +323,8 @@
 			isa = PBXGroup;
 			children = (
 				F10000000000000000000009 /* Localizable.xcstrings */,
+				F60000000000000000000006 /* tts-pyproject.toml */,
+				F60000000000000000000007 /* tts-irodori-pyproject.toml */,
 				F30000000000000000000038 /* TreeVoiceAssistant.icns */,
 			);
 			path = Resources;
@@ -393,6 +419,8 @@
 			files = (
 				E10000000000000000000009 /* Localizable.xcstrings in Resources */,
 				E50000000000000000000001 /* assets in Resources */,
+				E60000000000000000000006 /* tts-pyproject.toml in Resources */,
+				E60000000000000000000007 /* tts-irodori-pyproject.toml in Resources */,
 				E30000000000000000000038 /* TreeVoiceAssistant.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -436,7 +464,11 @@
 				E10000000000000000000007 /* SettingsViewModel.swift in Sources */,
 				E10000000000000000000008 /* AboutView.swift in Sources */,
 				E10000000000000000000015 /* ConsentView.swift in Sources */,
-				E10000000000000000000016 /* UpdateCardView.swift in Sources */,
+				E60000000000000000000001 /* UpdateCardsToolbar.swift in Sources */,
+				E60000000000000000000002 /* UpdateToolbarState.swift in Sources */,
+				E60000000000000000000003 /* ToolsInfo.swift in Sources */,
+				E60000000000000000000004 /* ToolsUpdateController.swift in Sources */,
+				E60000000000000000000005 /* ToolsUpdateService.swift in Sources */,
 				E30000000000000000000001 /* AppError.swift in Sources */,
 				E30000000000000000000002 /* AppInfo.swift in Sources */,
 				E30000000000000000000003 /* AppPaths.swift in Sources */,

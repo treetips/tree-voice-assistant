@@ -31,7 +31,7 @@ final class CapturingSynthesizer: SpeechSynthesizer, @unchecked Sendable {
 }
 
 @Suite("ConvertStages")
-struct ConvertStagesTests {
+struct ConvertStagesTests { // swiftlint:disable:this type_body_length
     func makeStore() throws -> SettingsStore {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -190,6 +190,11 @@ struct ConvertStagesTests {
         }
         #expect(jobStore.synthesisStage == .running)
         viewModel.cancelSynthesis()
+        #expect(jobStore.isCancellingSynthesis == true)
+        #expect(jobStore.synthesisStage == .running)
+        while jobStore.synthesisStage != .idle {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(jobStore.synthesisStage == .idle)
     }
 
@@ -252,12 +257,17 @@ struct ConvertStagesTests {
         }
         #expect(jobStore.transcriptionStage == .running)
         viewModel.cancelTranscription()
+        #expect(jobStore.isCancellingTranscribing == true)
+        #expect(jobStore.transcriptionStage == .running)
+        while jobStore.transcriptionStage != .idle {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(jobStore.transcriptionStage == .idle)
     }
 
     @Test("実行時に旧場所を移す")
     @MainActor
-    func runMigratesLegacy() throws {
+    func runMigratesLegacy() async throws {
         let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         let support = base.appendingPathComponent("support", isDirectory: true)
@@ -283,6 +293,9 @@ struct ConvertStagesTests {
         viewModel.runTranscription()
         #expect(checker.isWhisperCached("tiny") == true)
         viewModel.cancelTranscription()
+        while jobStore.isTranscribing {
+            try await Task.sleep(for: .milliseconds(10))
+        }
     }
 
 }

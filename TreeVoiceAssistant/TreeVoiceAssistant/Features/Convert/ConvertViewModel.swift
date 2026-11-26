@@ -105,8 +105,8 @@ final class ConvertViewModel {
     /// Irodori選択時は事前文字起こしも必須。captionは任意。
     var canRunSynthesis: Bool {
         guard audioFileURL != nil, !outputFolderPath.isEmpty, !outputFolderHasError,
-            !speechText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-            !jobStore.isRunning
+              !speechText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !jobStore.isRunning
         else { return false }
         if isIrodoriSelected {
             guard !transcriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
@@ -140,6 +140,7 @@ final class ConvertViewModel {
         let gen = transcriptionGen
         transcriptionTask?.cancel()
         jobStore.isTranscribing = true
+        jobStore.isCancellingTranscribing = false
         jobStore.resultMessage = ""
         jobStore.transcriptionStage = whisperCached ? .running : .preparingModel
         let modelID = WhisperModel(rawValue: whisperModel)?.argmaxModelID
@@ -149,6 +150,7 @@ final class ConvertViewModel {
         let cancelledMessage = msg("v.cancelled")
         transcriptionTask = Task.detached {
             do {
+                try Task.checkCancellation()
                 let text = try await engine.transcribe(audioURL: source, modelID: modelID) { stage in
                     Task {
                         await MainActor.run {
@@ -156,13 +158,16 @@ final class ConvertViewModel {
                         }
                     }
                 }
+                try Task.checkCancellation()
                 await MainActor.run {
                     self.finishTranscription(gen: gen, text: text, errorMessage: nil)
                 }
             } catch {
-                let message = error is CancellationError ? cancelledMessage : error.localizedDescription
+                let cancelled = error is CancellationError || Task.isCancelled
+                let message = cancelled ? cancelledMessage : error.localizedDescription
                 await MainActor.run {
-                    self.finishTranscription(gen: gen, text: nil, errorMessage: message)
+                    self.finishTranscription(
+                        gen: gen, text: nil, errorMessage: message, cancelled: cancelled)
                 }
             }
         }
@@ -170,30 +175,29 @@ final class ConvertViewModel {
 
     /// 文字起こし実行を取り消す。
     func cancelTranscription() {
-        transcriptionGen += 1
         transcriptionTask?.cancel()
-        transcriptionTask = nil
-        jobStore.isTranscribing = false
-        jobStore.transcriptionStage = .idle
-        jobStore.lastRunSucceeded = nil
+        jobStore.isCancellingTranscribing = true
         jobStore.resultMessage = msg("v.cancelled")
     }
 
     /// 文字起こしの後処理。現行世代の場合のみメインアクターで状態を更新する。
-    private func finishTranscription(gen: Int, text: String?, errorMessage: String?) {
+    private func finishTranscription(
+        gen: Int, text: String?, errorMessage: String?, cancelled: Bool = false
+    ) {
         guard gen == transcriptionGen else { return }
         if let text {
             transcriptionText = text
             jobStore.lastRunSucceeded = true
         } else {
-            jobStore.lastRunSucceeded = false
+            jobStore.lastRunSucceeded = cancelled ? nil : false
             jobStore.resultMessage = errorMessage ?? ""
         }
         jobStore.isTranscribing = false
+        jobStore.isCancellingTranscribing = false
         transcriptionTask = nil
         jobStore.transcriptionStage = .idle
         refreshModelCache()
-        Task { await notifyFinished() }
+        if !cancelled { Task { await notifyFinished() } }
     }
 
     /// 音声合成実行（ファイル出力）。重い推論はメインスレッド外で行い、状態更新だけ戻す。
@@ -209,6 +213,7 @@ final class ConvertViewModel {
         let gen = synthesisGen
         synthesisTask?.cancel()
         jobStore.isSynthesizing = true
+        jobStore.isCancellingSynthesis = false
         jobStore.resultMessage = ""
         jobStore.synthesisStage = ttsCached ? .running : .preparingModel
         let selected = TTSModel(rawValue: ttsModel) ?? TTSModel.default
@@ -226,6 +231,7 @@ final class ConvertViewModel {
         let cancelledMessage = msg("v.cancelled")
         synthesisTask = Task.detached {
             do {
+                try Task.checkCancellation()
                 let url = try await engine.synthesize(request: request) { stage in
                     Task {
                         await MainActor.run {
@@ -233,13 +239,16 @@ final class ConvertViewModel {
                         }
                     }
                 }
+                try Task.checkCancellation()
                 await MainActor.run {
                     self.finishSynthesis(gen: gen, outputURL: url, errorMessage: nil)
                 }
             } catch {
-                let message = error is CancellationError ? cancelledMessage : error.localizedDescription
+                let cancelled = error is CancellationError || Task.isCancelled
+                let message = cancelled ? cancelledMessage : error.localizedDescription
                 await MainActor.run {
-                    self.finishSynthesis(gen: gen, outputURL: nil, errorMessage: message)
+                    self.finishSynthesis(
+                        gen: gen, outputURL: nil, errorMessage: message, cancelled: cancelled)
                 }
             }
         }
@@ -247,31 +256,30 @@ final class ConvertViewModel {
 
     /// 音声合成実行を取り消す。モデルの取得中も中断される。
     func cancelSynthesis() {
-        synthesisGen += 1
         synthesisTask?.cancel()
-        synthesisTask = nil
         stopPlayback()
-        jobStore.isSynthesizing = false
-        jobStore.synthesisStage = .idle
-        jobStore.lastRunSucceeded = nil
+        jobStore.isCancellingSynthesis = true
         jobStore.resultMessage = msg("v.cancelled")
     }
 
     /// 音声合成の後処理。現行世代の場合のみメインアクターで状態を更新する。
-    private func finishSynthesis(gen: Int, outputURL: URL?, errorMessage: String?) {
+    private func finishSynthesis(
+        gen: Int, outputURL: URL?, errorMessage: String?, cancelled: Bool = false
+    ) {
         guard gen == synthesisGen else { return }
         if let outputURL {
             jobStore.outputFileURL = outputURL
             jobStore.lastRunSucceeded = true
         } else {
-            jobStore.lastRunSucceeded = false
+            jobStore.lastRunSucceeded = cancelled ? nil : false
             jobStore.resultMessage = errorMessage ?? ""
         }
         jobStore.isSynthesizing = false
+        jobStore.isCancellingSynthesis = false
         synthesisTask = nil
         jobStore.synthesisStage = .idle
         refreshModelCache()
-        Task { await notifyFinished() }
+        if !cancelled { Task { await notifyFinished() } }
     }
 
 }

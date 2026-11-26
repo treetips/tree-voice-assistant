@@ -7,11 +7,13 @@ import SwiftUI
 struct ConvertView: View {
     @State private var viewModel: ConvertViewModel
     private let jobStore: ConvertJobStore
+    private let toolsReady: Bool
     @State private var isDropTargeted = false
     @Environment(\.locale) private var locale
 
-    init(jobStore: ConvertJobStore) {
+    init(jobStore: ConvertJobStore, toolsReady: Bool = true) {
         self.jobStore = jobStore
+        self.toolsReady = toolsReady
         _viewModel = State(initialValue: ConvertViewModel(jobStore: jobStore))
     }
 
@@ -51,7 +53,7 @@ struct ConvertView: View {
 
     /// 入力エリアの有効条件。実行中は受け付けない。
     private var inputEnabled: Bool {
-        !jobStore.isRunning
+        toolsReady && !jobStore.isRunning
     }
 
     var body: some View {
@@ -63,26 +65,27 @@ struct ConvertView: View {
                     AudioDropView(
                         isEnabled: inputEnabled,
                         onDropURLs: { viewModel.acceptAudioURLs($0) },
-                        onHighlightChanged: { isDropTargeted = $0 }
-                    ) {
-                        VStack(spacing: 8) {
-                            if !viewModel.audioFileName.isEmpty {
-                                Text(viewModel.audioFileName)
-                                    .appFont(.body)
-                            } else {
-                                Text(t("v.dropHint"))
-                                    .appFont(.body)
-                                    .multilineTextAlignment(.center)
-                                    .foregroundStyle(.secondary)
+                        onHighlightChanged: { isDropTargeted = $0 },
+                        content: {
+                            VStack(spacing: 8) {
+                                if !viewModel.audioFileName.isEmpty {
+                                    Text(viewModel.audioFileName)
+                                        .appFont(.body)
+                                } else {
+                                    Text(t("v.dropHint"))
+                                        .appFont(.body)
+                                        .multilineTextAlignment(.center)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if !jobStore.resultMessage.isEmpty {
+                                    Text(jobStore.resultMessage)
+                                        .appFont(.body)
+                                }
                             }
-                            if !jobStore.resultMessage.isEmpty {
-                                Text(jobStore.resultMessage)
-                                    .appFont(.body)
-                            }
+                            .frame(maxWidth: .infinity, minHeight: 80)
+                            .padding(.vertical, 4)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 80)
-                        .padding(.vertical, 4)
-                    }
+                    )
                     .background(
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(
@@ -108,7 +111,7 @@ struct ConvertView: View {
                     Text(t("v.group.input")).appFont(.headline)
                 }
 
-                TranscriptionSection(viewModel: viewModel, jobStore: jobStore, text: t)
+                TranscriptionSection(viewModel: viewModel, jobStore: jobStore, toolsReady: toolsReady, text: t)
 
                 GlassCard {
                     HStack {
@@ -134,7 +137,7 @@ struct ConvertView: View {
                     Text(t("v.group.output")).appFont(.headline)
                 }
 
-                TtsSection(viewModel: viewModel, jobStore: jobStore, text: t)
+                TtsSection(viewModel: viewModel, jobStore: jobStore, toolsReady: toolsReady, text: t)
             }
             .padding(.horizontal)
             .padding(.bottom, 0)
@@ -164,6 +167,7 @@ private struct RunCancelButtons: View {
 private struct TranscriptionSection: View {
     @Bindable var viewModel: ConvertViewModel
     var jobStore: ConvertJobStore
+    var toolsReady: Bool
     var text: (String) -> String
 
     var body: some View {
@@ -194,10 +198,10 @@ private struct TranscriptionSection: View {
                         runTitle: jobStore.isTranscribing
                             ? viewModel.stageText(jobStore.transcriptionStage, runningKey: "v.transcribing")
                             : text("v.label.transcribeRun"),
-                        runDisabled: !viewModel.canRunTranscription,
+                        runDisabled: !toolsReady || !viewModel.canRunTranscription,
                         runAction: { viewModel.runTranscription() },
                         cancelTitle: text("a.cancel"),
-                        cancelDisabled: !jobStore.isTranscribing,
+                        cancelDisabled: !jobStore.isTranscribing || jobStore.isCancellingTranscribing,
                         cancelAction: { viewModel.cancelTranscription() }
                     )
                     .gridCellColumns(2)
@@ -236,6 +240,7 @@ private struct TranscriptionSection: View {
 private struct TtsSection: View {
     @Bindable var viewModel: ConvertViewModel
     var jobStore: ConvertJobStore
+    var toolsReady: Bool
     var text: (String) -> String
 
     var body: some View {
@@ -295,7 +300,7 @@ private struct TtsSection: View {
                             title: jobStore.isSynthesizing
                                 ? viewModel.stageText(jobStore.synthesisStage, runningKey: "v.synthesizing")
                                 : text("v.label.ttsRun"),
-                            disabled: !viewModel.canRunSynthesis
+                            disabled: !toolsReady || !viewModel.canRunSynthesis
                         ) {
                             viewModel.runSynthesis()
                         }
@@ -308,7 +313,7 @@ private struct TtsSection: View {
                         }
                         GlassCTAButton(
                             title: text("a.cancel"),
-                            disabled: !jobStore.isSynthesizing
+                            disabled: !jobStore.isSynthesizing || jobStore.isCancellingSynthesis
                         ) {
                             viewModel.cancelSynthesis()
                         }

@@ -26,7 +26,7 @@ enum AppInfo {
 
     static var toolVersions: [(binary: String, version: String)] {
         [
-            ("argmax-oss-swift", argmaxVersion),
+            ("argmax-oss-swift", argmaxVersion)
         ]
     }
 }
