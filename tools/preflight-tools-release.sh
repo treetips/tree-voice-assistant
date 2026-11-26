@@ -105,7 +105,7 @@ if [[ "$FORCE" != true ]]; then
   release_response="$WORK_DIR/release.json"
   if ! status="$(api_curl -o "$release_response" -w '%{http_code}' \
     "https://api.github.com/repos/${REPOSITORY}/releases/tags/${encoded_tag}")"; then
-    fail "配布先リリース$TAGのAPI問い合わせに失敗しました。"
+    fail "配布先リリース${TAG}のAPI問い合わせに失敗しました。"
   fi
   case "$status" in
     200)
@@ -133,10 +133,10 @@ if parsed is None or parsed.scheme != "https" or parsed.netloc != "github.com":
     raise SystemExit(f"リリース{tag}のtools-info.json URLが不正です")
 print(url)
 PY
-      )" || fail "配布先リリース$TAGのマニフェスト情報を確認できませんでした。"
+      )" || fail "配布先リリース${TAG}のマニフェスト情報を確認できませんでした。"
       remote_manifest="$WORK_DIR/tools-info.json"
       api_curl -fsSL "$manifest_url" -o "$remote_manifest" \
-        || fail "配布先リリース$TAGのtools-info.jsonを取得できませんでした。"
+        || fail "配布先リリース${TAG}のtools-info.jsonを取得できませんでした。"
       changed="$(python3 - "$CANDIDATE_DIR/tools-info.json" "$remote_manifest" \
         "$release_response" "$TAG" <<'PY'
 import json
@@ -187,10 +187,10 @@ PY
       )" || fail "既存tools-latestの検証に失敗しました。"
       ;;
     404)
-      echo "配布先リリース$TAGはまだ存在しません。"
+      echo "配布先リリース${TAG}はまだ存在しません。"
       ;;
     *)
-      fail "配布先リリース$TAGのAPI問い合わせがHTTP$statusで失敗しました。"
+      fail "配布先リリース${TAG}のAPI問い合わせがHTTP${status}で失敗しました。"
       ;;
   esac
 fi
