@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 
 // swiftlint:disable file_length
@@ -246,6 +247,32 @@ struct UpdateLogicTests { // swiftlint:disable:this type_body_length
         #expect(UpdateToolbarResolver.resolve(appCard: nil, toolsCard: nil, isChecking: true) == .checking)
         #expect(UpdateToolbarResolver.resolve(appCard: .noUpdate, toolsCard: nil, isChecking: false) == .noUpdate)
         #expect(UpdateToolbarResolver.resolve(appCard: nil, toolsCard: nil, isChecking: false) == .hidden)
+    }
+
+    @Test("更新ステータスピルは非表示時も更新なしと同じ高さを確保する")
+    @MainActor
+    func hiddenToolbarPreservesNoUpdateHeight() {
+        let hiddenUpdateCheck = UpdateCheckController()
+        let noUpdateUpdateCheck = UpdateCheckController()
+        noUpdateUpdateCheck.card = .noUpdate
+        let toolsUpdate = ToolsUpdateController()
+
+        func toolbar(for updateCheck: UpdateCheckController) -> NSHostingView<UpdateCardsToolbar> {
+            NSHostingView(rootView: UpdateCardsToolbar(
+                updateCheck: updateCheck,
+                toolsUpdate: toolsUpdate,
+                language: "ja",
+                fontScale: 1,
+                colorScheme: .light
+            ))
+        }
+
+        let hiddenToolbar = toolbar(for: hiddenUpdateCheck)
+        let noUpdateToolbar = toolbar(for: noUpdateUpdateCheck)
+        let hiddenHeight = hiddenToolbar.fittingSize.height
+        let noUpdateHeight = noUpdateToolbar.fittingSize.height
+        #expect(hiddenHeight > 0)
+        #expect(hiddenHeight == noUpdateHeight)
     }
 
     @Test("両方の更新はツールを先に実行する")
