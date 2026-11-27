@@ -10,7 +10,7 @@ enum UpdateCard: Equatable {
     /// 再起動用の準備が完了。緑色のカードから配置と起動を行う。
     case readyToRestart(URL, UpdateInfo)
     case installFailed(UpdateInfo)
-    /// 更新なし。クリックでカードを非表示化する。
+    /// 更新なし。閉じるボタンでカードを非表示化する。
     case noUpdate
 }
 

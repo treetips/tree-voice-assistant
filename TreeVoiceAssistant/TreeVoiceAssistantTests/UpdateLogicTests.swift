@@ -357,6 +357,25 @@ struct UpdateLogicTests { // swiftlint:disable:this type_body_length
         #expect(controller.card == .available(info))
     }
 
+    @Test("ツール更新通知は実行中だけ閉じられない")
+    @MainActor
+    func toolsUpdateCardDismissPreservesInstallProgress() throws {
+        let base = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: base) }
+        let controller = ToolsUpdateController(paths: AppPaths(baseURL: base))
+        let info = makeToolsInfo()
+
+        controller.card = .available(info)
+        controller.dismissCard()
+        #expect(controller.card == nil)
+
+        let progress = ToolsUpdateProgress(phase: .downloading, fraction: 0.5, label: "uv")
+        controller.card = .installing(progress)
+        controller.isInstalling = true
+        controller.dismissCard()
+        #expect(controller.card == .installing(progress))
+    }
+
     @Test("変換中はアプリの再起動を開始しない")
     @MainActor
     func restartBlocksDuringConversion() {
@@ -392,6 +411,16 @@ struct UpdateLogicTests { // swiftlint:disable:this type_body_length
         #expect(L10n.string("nav.updateReady", language: "ja") == "アップデート完了")
         #expect(L10n.string("nav.restart", language: "en") == "Restart app")
         #expect(L10n.string("a.restartReadyMsg", language: "ja") == "再起動するとアップデートが反映されます。")
+    }
+
+    @Test("Rex風ステータスピルの文言")
+    func rexStatusPillText() {
+        #expect(L10n.string("a.close", language: "ja") == "閉じる")
+        #expect(L10n.string("a.close", language: "en") == "Close")
+        #expect(L10n.string("nav.download", language: "ja") == "ダウンロード")
+        #expect(L10n.string("nav.download", language: "en") == "Download")
+        #expect(L10n.string("a.install", language: "ja") == "インストール")
+        #expect(L10n.string("a.install", language: "en") == "Install")
     }
 
     @Test("ダウンロード進捗の書式")

@@ -84,6 +84,12 @@ final class ToolsUpdateController {
         }
     }
 
+    /// 通知を閉じる。実行中は進捗を失わないよう無視する。
+    func dismissCard() {
+        guard !isInstalling else { return }
+        card = nil
+    }
+
     /// 差分のあるツールだけを更新する。完了でカードを消し、失敗時は再実行可能にする。
     func install(
         _ info: ToolsInfo,

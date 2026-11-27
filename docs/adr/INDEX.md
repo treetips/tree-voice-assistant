@@ -27,6 +27,7 @@
 | 023 | Swift関連の変更時のみBuild & Testを実行し、非該当時はスキップ報告する | Accepted | CI |
 | 024 | MarkdownのCIをpushに一本化して2重実行をなくす | Accepted | ドキュメント・CI |
 | 025 | 更新操作をヘッダーへ移し、アプリとツールを別リリースで更新する | Accepted | 画面・更新・配布 |
+| 026 | 更新通知をRex風のステータスピルにする | Accepted | 画面・更新 |
 
 - ステータス凡例
   - 提案済み (Proposed)

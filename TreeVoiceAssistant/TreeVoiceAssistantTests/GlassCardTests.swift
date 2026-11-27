@@ -25,9 +25,9 @@ struct GlassCardTests {
 
     @Test("ヘッダー更新カードの濃さは共通定義から参照できる")
     func updateCardStyleIsCentralized() {
-        #expect(GlassStyle.updateCardTintOpacity == 0.5)
-        #expect(GlassStyle.updateCardBlueTintOpacity == 0.8)
-        #expect(GlassStyle.updateCardGreenTintOpacity == 0.65)
+        #expect(GlassStyle.updateCardTintOpacity == 0.3)
+        #expect(GlassStyle.updateCardBlueTintOpacity == 0.35)
+        #expect(GlassStyle.updateCardGreenTintOpacity == 0.3)
         #expect(GlassStyle.updateCardNoneTintOpacity == 0.05)
     }
 

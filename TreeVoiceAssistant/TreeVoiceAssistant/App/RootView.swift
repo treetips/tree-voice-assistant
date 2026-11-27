@@ -79,29 +79,19 @@ struct RootView: View { // swiftlint:disable:this type_body_length
             ZStack {
                 backgroundColor
                 backgroundImage
-                switch navigation.selection {
-                case .convert:
-                    ConvertView(
-                        jobStore: convertJobStore,
-                        toolsReady: !toolsUpdate.isInstalling && !toolsUpdate.isChecking
-                    )
-                case .settings:
-                    SettingsView(viewModel: settings)
-                case .about:
-                    AboutView(controller: updateCheck)
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    UpdateCardsToolbar(
-                        updateCheck: updateCheck,
-                        toolsUpdate: toolsUpdate,
-                        language: settings.language,
-                        fontScale: fontScale,
-                        colorScheme: appearanceScheme,
-                        toolsInstallEnabled: !convertJobStore.isRunning
-                    )
-                }
+                detailContent
+                    .padding(.top, 12)
+                    .safeAreaInset(edge: .top, alignment: .trailing) {
+                        UpdateCardsToolbar(
+                            updateCheck: updateCheck,
+                            toolsUpdate: toolsUpdate,
+                            language: settings.language,
+                            fontScale: fontScale,
+                            colorScheme: appearanceScheme,
+                            toolsInstallEnabled: !convertJobStore.isRunning
+                        )
+                        .padding(.trailing, 12)
+                    }
             }
         }
         .environment(\.locale, settings.effectiveLocale)
@@ -337,6 +327,23 @@ struct RootView: View { // swiftlint:disable:this type_body_length
         let green = Double((number >> 8) & 0xFF) / 255
         let blue = Double(number & 0xFF) / 255
         return Color(red: red, green: green, blue: blue, opacity: alpha)
+    }
+}
+
+extension RootView {
+    @ViewBuilder
+    private var detailContent: some View {
+        switch navigation.selection {
+        case .convert:
+            ConvertView(
+                jobStore: convertJobStore,
+                toolsReady: !toolsUpdate.isInstalling && !toolsUpdate.isChecking
+            )
+        case .settings:
+            SettingsView(viewModel: settings)
+        case .about:
+            AboutView(controller: updateCheck)
+        }
     }
 }
 
