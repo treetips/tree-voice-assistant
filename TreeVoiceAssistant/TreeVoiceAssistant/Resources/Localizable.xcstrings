@@ -92,6 +92,24 @@
         }
       }
     },
+    "a.close": {
+      "comment": "",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "閉じる"
+          }
+        }
+      }
+    },
     "a.col.binary": {
       "comment": "",
       "extractionState": "manual",
@@ -541,6 +559,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "更新を確認中"
+          }
+        }
+      }
+    },
+    "nav.download": {
+      "comment": "",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロード"
           }
         }
       }

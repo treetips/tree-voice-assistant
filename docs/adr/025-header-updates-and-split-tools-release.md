@@ -1,6 +1,7 @@
 # 更新操作をヘッダーへ移し、アプリとツールを別リリースで更新する
 
 - ステータス: Accepted
+- 更新通知の見た目と操作配置は [ADR 026](./026-rex-style-update-status-pill.md) で置換
 - 影響範囲: 更新UI、更新サービス、ツール配布、Releaseワークフロー、変換処理
 - 関連: ADR 009、ADR 017、ADR 018、tree-image-optimizer ADR 0076・0078
 
