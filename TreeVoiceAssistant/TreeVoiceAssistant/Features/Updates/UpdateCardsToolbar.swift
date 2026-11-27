@@ -23,7 +23,11 @@ struct UpdateCardsToolbar: View { // swiftlint:disable:this type_body_length
     var body: some View {
         switch state {
         case .hidden:
-            EmptyView()
+            // Why not EmptyViewにするか: safeAreaInsetの高さが畳まれ、更新なしピルの消滅時に本文が上へ跳ねるため。
+            noUpdateCard()
+                .hidden()
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         case .checking:
             checkingCard()
         case .available(let availability):
